@@ -1,0 +1,6 @@
+*.pyc
+src/ming
+bin
+var
+parts
+*.egg-info

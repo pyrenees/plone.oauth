@@ -1,0 +1,199 @@
+#%RAML 1.0
+title: Horus
+version: v1
+baseUri: http://auth.plone.com
+types:
+  TestType:
+    type: object
+    properties:
+      id: number
+      optional?: string
+      expanded:
+        type: object
+        properties:
+          count: number
+/get_authorization_code:
+  get:
+    queryParameters:
+      response_type:
+        displayName: Kind of response
+        type: string
+        description: For extension usage
+        example: code
+        required: true
+      client_id:
+        displayName: ID of the client
+        type: integer
+        description: Identifier of the client
+        example: 11
+        required: true
+      redirect_uri:
+        displayName: Uri to redirect in case you need
+        type: string
+        description: In case you don't want to receive back the code
+        example: http://example.com
+        required: false
+      scope:
+        displayName: Which scope you want to auth
+        type: string
+        description: namespace where you want to ask a code
+        example: plone
+        required: true
+    responses:
+      200:
+        body:
+          text/jwt:
+            example: |
+              {
+                'iat': 2015-12-29 15:57:29.284501,
+                'exp': 2015-12-29 15:57:29.284501,
+                'auth_code': HASDASDHUH787669998ASUYDU
+              }
+/get_auth_token:
+  post:
+    queryParameters:
+      grant_type:
+        displayName: Kind of authentication
+        type: string
+        description: password or authorization_code
+        example: authorization_code
+        required: true
+      code:
+        displayName: Authorization code
+        type: string
+        description: Authorization code got from the get_authorization_code
+        example: J)(J)(JAS)(DJHASFHAS)FHASD
+        required: true
+      scope:
+        displayName: Scope to get the account
+        type: string
+        description: scope that holds the authentication
+        example: plone
+        required: true
+      username:
+        displayName: Username to get auth
+        type: string
+        description: Username that needs to login
+        example: info@iskra.cat
+        required: false
+      password:
+        displayName: Password of the user to auth
+        type: string
+        description: Password to use on authentication (PLAIN)
+        example: secret
+        required: false
+      client_id:
+        displayName: Client id in case is a service auth
+        type: string
+        description: In service authentication we need the client_id
+        example: 11
+        required: false
+      client_secret:
+        displayName: Client secret in case is a service auth
+        type: string
+        description: Secret of the client that wants to connect
+        example: secret
+        required: false
+    responses:
+      200:
+        body:
+          text/jwt:
+            example: |
+                {
+                  'iat': 2015-12-29 15:57:29.284501,
+                  'exp': 2015-12-29 15:57:29.284501,
+                  # Service
+                  'access_token': HASDASDHUH787669998ASUYDU
+                  # User
+                  'token': HASDASDHUH787669998ASUYDU,
+                  'login': login,
+                  'name': userName
+                }
+/get_group:
+  post:
+    queryParameters:
+      grant_type:
+      service_token:
+        displayName: Service code
+        type: string
+        description: Service code got from horus
+        example: service_token
+        required: true
+      user_token:
+        displayName: User code
+        type: string
+        description: User code got from horus
+        example: user_token
+        required: true
+      scope:
+        displayName: Scope to get the account
+        type: string
+        description: scope that holds the authentication
+        example: plone
+        required: true
+      group:
+        displayName: Groupname
+        type: string
+        description: Groupname to get information from or all groups if empty
+        example: group1
+        required: false
+    responses:
+      200:
+        body:
+          text/jwt:
+            example: |
+                {
+                  'iat': 2015-12-29 15:57:29.284501,
+                  'exp': 2015-12-29 15:57:29.284501,
+                  # Result
+                  'result': {
+                    'roles': {'Editor': 1},
+                    'groups': {},
+                    'members': ['info@iskra.cat'],
+                    'name': u'group1'
+                  }
+                }
+      400:
+        body:
+          text/html:
+            example: |
+              "<html>\n <head>\n  <title>400 Bad Request</title>\n </head>\n <body>\n  <h1>400 Bad Request</h1>\n  The server could not comply with the request since it is either malformed or otherwise incorrect.<br/><br/>\nservice_token is missing\n\n\n </body>\n</html>"
+/add_group:
+  post:
+    queryParameters:
+      grant_type:
+      service_token:
+        displayName: Service code
+        type: string
+        description: Service code got from horus
+        example: service_token
+        required: true
+      user_token:
+        displayName: User code
+        type: string
+        description: User code got from horus
+        example: user_token
+        required: true
+      scope:
+        displayName: Scope to get the account
+        type: string
+        description: scope that holds the authentication
+        example: plone
+        required: true
+      group:
+        displayName: Groupname
+        type: string
+        description: Groupname to add
+        example: group1
+        required: true
+    responses:
+      200:
+        body:
+          text/jwt:
+            example: |
+              "success"
+      400:
+        body:
+          text/jwt:
+            example: |
+              "entryAlreadyExists"

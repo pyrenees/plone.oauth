@@ -1,0 +1,10 @@
+redis:
+  image: redis
+  ports:
+  - "6379:6379"
+ldap:
+  image: iskra/apacheds
+  volumes:
+  - ./ldap-bootstrap:/bootstrap
+  ports:
+  - "10389:10389"

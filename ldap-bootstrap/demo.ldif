@@ -1,0 +1,150 @@
+dn: dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: domain
+dc: plone
+
+dn: ou=config,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: config
+
+dn: ou=scopes,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: scopes
+
+dn: ou=clients,ou=config,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: clients
+
+dn: ou=roles,ou=config,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: roles
+
+dn: ou=plone,ou=scopes,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: plone
+
+dn: ou=roles,ou=plone,ou=scopes,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: roles
+
+dn: ou=localroles,ou=plone,ou=scopes,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: localroles
+
+dn: ou=groups,ou=plone,ou=scopes,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: groups
+
+dn: cn=plone,ou=clients,ou=config,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: person
+cn: plone
+sn: Plone
+userPassword:: e1NTSEF9VS80aDA4OUhBWEVFdkI5a0R3SW9oZjVsb0xjWS9tblM=
+
+dn: cn=editor,ou=roles,ou=plone,ou=scopes,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: groupOfUniqueNames
+cn: Editor
+uniqueMember: cn=group1,ou=groups,ou=plone,ou=scopes,dc=plone,dc=com
+
+dn: cn=contributor,ou=roles,ou=plone,ou=scopes,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: groupOfUniqueNames
+cn: Contributor
+uniqueMember: mail=user@example.com,ou=users,dc=plone,dc=com
+
+dn: cn=member,ou=roles,ou=plone,ou=scopes,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: groupOfUniqueNames
+cn: Member
+uniqueMember: mail=user@example.com,ou=users,dc=plone,dc=com
+
+dn: ou=119ac55fa05848aca5e2289f7c2503cf,ou=localroles,ou=plone,ou=scopes,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: 119ac55fa05848aca5e2289f7c2503cf
+
+dn: cn=editor,ou=119ac55fa05848aca5e2289f7c2503cf,ou=localroles,ou=plone,ou=scopes,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: groupOfUniqueNames
+cn: editor
+seeAlso: ou=c43e88884b384ee3b870c0a648bf61a7,ou=localroles,ou=plone,ou=scopes,dc=plone,dc=com
+uniqueMember: mail=user@example.com,ou=users,dc=plone,dc=com
+uniqueMember: cn=group1,ou=groups,ou=plone,ou=scopes,dc=plone,dc=com
+
+dn: cn=editor,ou=roles,ou=config,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: organizationalRole
+cn: editor
+
+dn: cn=manager,ou=roles,ou=config,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: organizationalRole
+cn: manager
+
+dn: cn=group1,ou=groups,ou=plone,ou=scopes,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: groupOfUniqueNames
+cn: group1
+uniqueMember: mail=user@example.com,ou=users,dc=plone,dc=com
+
+dn: ou=users,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: users
+
+dn: mail=user@example.com,ou=users,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: inetOrgPerson
+objectClass: person
+objectClass: organizationalPerson
+cn: User
+sn: Test User
+mail: user@example.com
+userPassword:: e1NTSEF9Q2czYnRZZ1lrci9KWEhXUXo4ajR2Ri94VENHN3BOTkk=
+
+dn: mail=admin@example.com,ou=users,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: inetOrgPerson
+objectClass: person
+objectClass: organizationalPerson
+cn: admin
+sn: Admin
+mail: admin@example.com
+userPassword:: e1NTSEF9KzNJa05IalF3RTNuaUdjYUI0WlZ6TGFWa251VEVLUGI=
+
+dn: ads-pwdId=default,ou=passwordPolicies,ads-interceptorId=authenticationIn
+ terceptor,ou=interceptors,ads-directoryServiceId=default,ou=config
+changetype: modify
+replace: ads-enabled
+ads-enabled: FALSE
