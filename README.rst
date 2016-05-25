@@ -1,6 +1,7 @@
-==========
-plone.auth
-==========
+[![Build Status](https://travis-ci.org/pyrenees/plone.oauth.svg?branch=master)](https://travis-ci.org/pyrenees/plone.oauth)
+
+plone.oauth
+===========
 
 Install & Run
 =============

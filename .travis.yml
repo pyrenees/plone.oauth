@@ -13,7 +13,7 @@ install:
 - python bootstrap.py
 - bin/buildout -N -t 3
 - docker ps -a
-- wait 4
+- sleep 15
 script: bin/py.test --ldap localhost --ldap-port 10389 --redis localhost --redis-port 6379
 after_script:
   - docker-compose stop
