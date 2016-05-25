@@ -50,3 +50,8 @@ Needs an ApacheDS + Redis environment::
 Then it can be tested::
 
  ./bin/py.test --ldap <docker-host> --ldap-port 10389 --redis <docker-host> --redis-port 6379
+
+Credits
+=======
+
+Iskra Desenvolupament SCCL
