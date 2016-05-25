@@ -19,7 +19,7 @@ redis:
   expose:
   - "6379"  
 ldap:
-  image: iskra/apacheds
+  image: greggigon/apacheds
   volumes:
   - ./ldap:/data
   - ./ldap-bootstrap:/bootstrap

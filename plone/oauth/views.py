@@ -8,4 +8,4 @@ from pyramid.view import view_config
 def say_hello(request):
     wait_time = float(request.params.get('sleep', 0.1))
     yield from asyncio.sleep(wait_time)
-    return "Welcome to Pyramid with Asyncio."
+    return "Welcome to Plone OAuth Server."

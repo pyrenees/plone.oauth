@@ -1,0 +1,15 @@
+language: python
+python:
+- 3.5
+sudo: required
+services:
+  - docker
+cache:
+  directories:
+  - eggs
+before_install:
+- docker-compose -f docker-compose-dev.yml up
+install:
+- python bootstrap-buildout.py
+- bin/buildout -N -t 3
+script: bin/py.test --ldap localhost --ldap-port 10389 --redis localhost --redis-port 6379
