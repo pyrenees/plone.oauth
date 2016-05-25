@@ -9,6 +9,7 @@ cache:
   - eggs
 before_install:
 - docker-compose -f docker-compose-dev.yml start
+- docker ps -a
 install:
 - python bootstrap.py
 - bin/buildout -N -t 3
