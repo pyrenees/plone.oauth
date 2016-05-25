@@ -54,4 +54,8 @@ Then it can be tested::
 Credits
 =======
 
-Iskra Desenvolupament SCCL
+from Iskra Desenvolupament SCCL:
+
+- Ramon Navarro Bosch
+- Aleix Llusà
+
