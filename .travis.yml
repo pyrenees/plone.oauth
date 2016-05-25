@@ -10,7 +10,7 @@ cache:
 before_install:
 - docker-compose -f docker-compose-dev.yml start
 install:
-- python bootstrap-buildout.py
+- python bootstrap.py
 - bin/buildout -N -t 3
 script: bin/py.test --ldap localhost --ldap-port 10389 --redis localhost --redis-port 6379
 
