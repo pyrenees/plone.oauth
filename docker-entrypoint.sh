@@ -1,74 +1,21 @@
 #!/bin/bash
 set -e
 
-if [ -n "$REDIS_PORT_6379_TCP_ADDR" ]; then
-    if [ -z "$REDIS_DB_HOST" ]; then
-        REDIS_DB_HOST='redis'
-    else
-        echo >&2 'warning: both REDIS_DB_HOST and REDIS_PORT_6379_TCP_ADDR found'
-        echo >&2 "  Connecting to REDIS_DB_HOST ($REDIS_DB_HOST)"
-        echo >&2 '  instead of the linked redis container'
-    fi
-fi
-
-if [ -n "$REDIS_PORT_6379_TCP_PORT" ]; then
-    if [ -z "$REDIS_DB_PORT" ]; then
-        REDIS_DB_PORT=6379
-    else
-        echo >&2 'warning: both REDIS_DB_PORT and REDIS_PORT_6379_TCP_PORT found'
-        echo >&2 "  Connecting to REDIS_DB_PORT ($REDIS_DB_PORT)"
-        echo >&2 '  instead of the linked redis container'
-    fi
-fi
-
-if [ -n "$LDAP_PORT_10389_TCP_ADDR" ]; then
-    if [ -z "$LDAP_DB_HOST" ]; then
-        LDAP_DB_HOST='ldap'
-    else
-        echo >&2 'warning: both LDAP_HOST and LDAP_PORT_10389_TCP_ADDR found'
-        echo >&2 "  Connecting to LDAP_HOST ($LDAP_HOST)"
-        echo >&2 '  instead of the linked ldap container'
-    fi
-fi
-
-if [ -n "$LDAP_PORT_10389_TCP_PORT" ]; then
-    if [ -z "$LDAP_DB_PORT" ]; then
-        LDAP_DB_PORT=10389
-    else
-        echo >&2 'warning: both LDAP_DB_PORT and LDAP_PORT_10389_TCP_PORT found'
-        echo >&2 "  Connecting to LDAP_DB_PORT ($LDAP_DB_PORT)"
-        echo >&2 '  instead of the linked ldap container'
-    fi
-fi
-
-if [ -z "$LDAP_DB_HOST" ]; then
-    echo >&2 'error: missing LDAP_DB_HOST'
-    echo >&2 '  Did you forget to --link some_ldap_container:ldap or set an external db'
-    echo >&2 '  with -e LDAP_DB_HOST=hostname'
-    exit 1
-fi
-
-if [ -z "$LDAP_DB_PORT" ]; then
-    echo >&2 'error: missing LDAP_DB_PORT'
-    echo >&2 '  Did you forget to --link some_ldap_container:ldap or set an external db'
-    echo >&2 '  with -e LDAP_DB_PORT=hostname'
-    exit 1
+if [ -z "$REDIS_DB_HOST" ]; then
+    REDIS_DB_HOST='redis'
 fi
 
 if [ -z "$REDIS_DB_PORT" ]; then
-    echo >&2 'error: missing REDIS_DB_PORT'
-    echo >&2 '  Did you forget to --link some_redis_container:redis or set an external db'
-    echo >&2 '  with -e REDIS_DB_PORT=port'
-    exit 1
+    REDIS_DB_PORT='6379'
 fi
 
-if [ -z "$REDIS_DB_HOST" ]; then
-    echo >&2 'error: missing REDIS_DB_HOST'
-    echo >&2 '  Did you forget to --link some_redis_container:redis or set an external db'
-    echo >&2 '  with -e REDIS_DB_HOST=hostname'
-    exit 1
+if [ -z "$LDAP_DB_HOST" ]; then
+    LDAP_DB_HOST='ldap'
 fi
 
+if [ -z "$LDAP_DB_PORT" ]; then
+    LDAP_DB_PORT='10389'
+fi
 
 if [ -z "$JWTSECRET" ]; then
     echo >&2 'error: missing required JWTSECRET environment variable'
