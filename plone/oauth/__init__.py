@@ -155,7 +155,11 @@ def main(global_config, **settings):
         disable_existing_loggers=False
     )
 
-    config = Configurator(settings=settings)
+    if isinstance(global_config, Configurator):
+        config = global_config
+    else:
+        config = Configurator(settings=settings)
+
 
     config.include('pyramid_raven')
 
@@ -226,3 +230,10 @@ def main(global_config, **settings):
     config.scan(groups)
     config.scan(views)
     return config.make_wsgi_app()
+
+def includeme(config):
+    """
+    Callable to allow extending this Pyramid application with
+    `config.include('plone.oauth')`
+    """
+    return main(config, **config.registry.settings)

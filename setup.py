@@ -27,7 +27,7 @@ requires = [
     'requests',
     'pyramid_mailer',
     'validate_email',
-    'python-logstash'
+    'python-logstash',
 ]
 
 setup(
@@ -48,11 +48,17 @@ setup(
     url='',
     keywords='aiopyramid asyncio web wsgi pylons pyramid',
     packages=find_packages(),
-    namespace_packages=['plone'],   
+    namespace_packages=['plone'],
     include_package_data=True,
     zip_safe=False,
     test_suite=NAME,
     install_requires=requires,
+    extras_require={
+        'test': [
+            'psutil',
+            'pytest',
+            ],
+    },
     entry_points="""\
     [paste.app_factory]
     main = plone.oauth:main

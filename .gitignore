@@ -1,6 +1,11 @@
 *.pyc
-src/ming
+src/*
 bin
 var
 parts
 *.egg-info
+.coverage
+.cache/
+.installed.cfg
+.mr.developer.cfg
+develop-eggs

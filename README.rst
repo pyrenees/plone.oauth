@@ -20,7 +20,7 @@ This default port can be changed in `docker-compose.yml`, e.g. change to 3456::
  - "6543:6543"
  + "3456:6543"
 
-   
+
 Default configuration
 =====================
 
@@ -38,7 +38,7 @@ Clients
 -------
 
 * plone plone
- 
+
 
 Testing
 =======
@@ -51,6 +51,21 @@ Needs an ApacheDS + Redis environment::
 Then it can be tested::
 
  ./bin/py.test --ldap <docker-host> --ldap-port 10389 --redis <docker-host> --redis-port 6379
+
+
+Extending plone.oauth from another Pyramid Application
+======================================================
+
+Copy `development.ini` and `production.ini` configuration files. Note that you will need ldap and redis services such as the ones configured in `docker-compose.yml`.
+
+Include the configuration from plone.oauth into your new application::
+
+ config.include('plone.oauth')
+
+
+See http://docs.pylonsproject.org/projects/pyramid/en/1.7-branch/narr/extending.html
+
+
 
 Credits
 =======

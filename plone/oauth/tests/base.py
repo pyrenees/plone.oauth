@@ -164,6 +164,27 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
 
         self.conn.delete(entry)
 
+    def set_teardown(self):
+        self._recursively_delete('ou=scopes,'+self.base_dn)
+        self._recursively_delete('ou=users,'+self.base_dn)
+        self._recursively_delete('ou=config,'+self.base_dn)
+        # close connections
+        self.conn.unbind()
+        self.ldap.unbind()
+        # pending tasks from redis??
+        tasks = asyncio.Task.all_tasks()
+        for task in tasks:
+            task.cancel()
+        # unmock
+        if self.DISABLE_CACHE_REDIS:
+            redis.cache = self.original_redis_cache
+            redis.get = self.original_redis_get
+        # fix bug too many open files
+        # pu = psutil.Process(os.getpid())
+        # open_files = pu.open_files()
+        # for of in open_files:
+        #     os.close(of.fd)
+
     @pytest.fixture(autouse=True)
     def set_init(self, app, request):
         asyncio.get_event_loop().set_debug(True)
@@ -207,29 +228,8 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
         conn.add('ou=clients,ou=config,'+self.base_dn, 'organizationalUnit')
 
         # post delete
-        def teardown():
-            self._recursively_delete('ou=scopes,'+self.base_dn)
-            self._recursively_delete('ou=users,'+self.base_dn)
-            self._recursively_delete('ou=config,'+self.base_dn)
-            # close connections
-            self.conn.unbind()
-            self.ldap.unbind()
-            # pending tasks from redis??
-            tasks = asyncio.Task.all_tasks()
-            for task in tasks:
-                task.cancel()
-            # unmock
-            if self.DISABLE_CACHE_REDIS:
-                redis.cache = self.original_redis_cache
-                redis.get = self.original_redis_get
-            # fix bug too many open files
-            # pu = psutil.Process(os.getpid())
-            # open_files = pu.open_files()
-            # for of in open_files:
-            #     os.close(of.fd)
-
-
-        request.addfinalizer(teardown)
+        if request is not None:
+            request.addfinalizer(self.set_teardown)
 
         # load data
         self.ldap = self.app.registry.settings['user_manager']
