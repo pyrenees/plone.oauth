@@ -18,16 +18,14 @@ with open(os.path.join(here, 'CHANGES.rst')) as changes:
 
 requires = [
     'aiopyramid[gunicorn]',
+    'pyramid',
     'aioredis',
     'ujson',
     'ldap3',
     'pyjwt',
-    'pyramid_raven',
-    'raven',
     'requests',
     'pyramid_mailer',
     'validate_email',
-    'python-logstash',
 ]
 
 setup(
@@ -37,8 +35,8 @@ setup(
     long_description=README + '\n\n' + CHANGES,
     classifiers=[
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
         "Framework :: Pyramid",
         "Topic :: Internet :: WWW/HTTP",
         "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",

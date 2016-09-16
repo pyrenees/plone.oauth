@@ -11,25 +11,9 @@ from datetime import datetime, timedelta
 from pyramid.response import Response
 from ldap3 import Server, Connection, SUBTREE, ASYNC, SIMPLE, ANONYMOUS, SASL
 import plone.oauth
-import logstash
 import os
 
 log = logging.getLogger(__name__)
-
-logging.basicConfig(
-    format='%(name)s - %(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%m/%d/%Y %H:%M:%S')
-logger = logging.getLogger('classifier')
-log.setLevel(logging.WARN)
-
-logstash_addr = os.environ.get('LOGSTASH_PORT_5000_TCP_ADDR', None)
-logstash_port = int(os.environ.get('LOGSTASH_PORT_5000_TCP_PORT', 0))
-
-if logstash_addr:
-    log.addHandler(logstash.LogstashHandler(
-        logstash_addr,
-        logstash_port,
-        version=1))
 
 
 # get_authorization_code

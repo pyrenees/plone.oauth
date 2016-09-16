@@ -20,19 +20,14 @@ from plone.oauth import views
 from pyramid_mailer import mailer_factory_from_settings
 
 
-SUPERUSER_HARDCODED = 'admin@example.com'
+MANAGERS = []
 
 
 def is_superuser(username):
     """
     True if `request` is solicited by a superuser
-
-    HARDCODED
     """
-    intranetum_managers = [
-            SUPERUSER_HARDCODED,
-        ]
-    return username in intranetum_managers
+    return username in MANAGERS
 
 @asyncio.coroutine
 def config_db(registry, settings):
@@ -160,19 +155,18 @@ def main(global_config, **settings):
     else:
         config = Configurator(settings=settings)
 
-
-    config.include('pyramid_raven')
-
     # DB 3 users cache
     # DB 4 groups cache
     # DB 5 clients
+
+    manager_id = settings['manager']
+    MANAGERS.append(manager_id)
 
     loop = asyncio.get_event_loop()
 
     loop.run_until_complete(config_db(config.registry, settings))
     loop.run_until_complete(config_ldap(config.registry, settings))
-    #loop.run_until_complete(config_mailer(config.registry, settings))
-    config.registry.settings['cms_server'] = settings['cms.server']
+    # loop.run_until_complete(config_mailer(config.registry, settings))
 
     # Per fer un auth token amb un auth service
     config.add_settings(ttl_auth_service=120)
@@ -200,8 +194,7 @@ def main(global_config, **settings):
     config.registry.settings['valid_password'] = valid_password
     config.registry.settings['password_policy'] = password_policy
 
-    settings['horus.debug'] == 'True'
-    config.add_settings(debug=settings['horus.debug'])
+    config.add_settings(debug=settings['debug'] == 'True')
 
     config.add_route('say_hello', '/')
 
@@ -221,7 +214,6 @@ def main(global_config, **settings):
     config.add_route('get_scopes', '/get_scopes')
     config.add_route('grant_scope_roles', '/grant_scope_roles')
     config.add_route('deny_scope_roles', '/deny_scope_roles')
-
 
     config.scan(endpoints)
     config.scan(search)

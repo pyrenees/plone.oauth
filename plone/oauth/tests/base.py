@@ -2,8 +2,6 @@ import asyncio
 from ldap3 import Connection
 import jwt
 import logging
-import os
-import psutil
 from pyramid.httpexceptions import HTTPBadRequest
 import pytest
 from unittest.mock import MagicMock
@@ -11,7 +9,8 @@ from unittest.mock import MagicMock
 from plone.oauth import main
 from plone.oauth import redis
 from plone.oauth.endpoints import get_authorization_code, get_token
-from plone.oauth import SUPERUSER_HARDCODED
+
+SUPERUSER_HARDCODED = 'admin@example.com'
 
 
 class TestUtils:

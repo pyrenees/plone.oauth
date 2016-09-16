@@ -24,14 +24,6 @@ if [ -z "$JWTSECRET" ]; then
     exit 1
 fi
 
-if [ -z "$RAVENDSN" ]; then
-    RAVENDSN=''
-    echo >&2 'warning: missing required RAVENDSN environment variable'
-    echo >&2 '  Did you forget to -e RAVENDSN=... ?'
-    echo >&2 '  Using none raven'
-    echo >&2
-fi
-
 if [ -z "$HORUS_PORT" ]; then
     HORUS_PORT=6543
     echo >&2 'warning: missing required HORUS_PORT environment variable'
@@ -106,7 +98,6 @@ set_config \$REDIS_DB_HOST $REDIS_DB_HOST
 set_config \$REDIS_DB_PORT $REDIS_DB_PORT
 set_config \$LDAP_HOST $LDAP_DB_HOST
 set_config \$LDAP_PORT $LDAP_DB_PORT
-set_config \$RAVENDSN $RAVENDSN
 set_config \$HORUS_PORT $HORUS_PORT
 set_config \$LDAP_ROOT_DN $LDAP_ROOT_DN
 set_config \$LDAP_ROOT_PW $LDAP_ROOT_PW
