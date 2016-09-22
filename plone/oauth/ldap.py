@@ -59,9 +59,6 @@ class LDAPUserManager(object):
         f = 'cn={role},' + self.roles_filter(scope)
         return f.format(role=role)
 
-    def localroles_filter(self, scope):
-        return 'ou=localroles,' + self.scope_filter(scope=scope)
-
     def users_filter(self):
         f = 'ou=users,' + self.base_dn
         return f
@@ -161,11 +158,6 @@ class LDAPUserManager(object):
             done = self.ldap_conn_mng.add(groups_dn, 'organizationalUnit')
             if self.parse_async_add(done) != 'success':
                 result = 'Failed creating groups'
-
-            localroles_dn = self.localroles_filter(scope=scope)
-            done = self.ldap_conn_mng.add(localroles_dn, 'organizationalUnit')
-            if self.parse_async_add(done) != 'success':
-                result = 'Failed creating localroles'
 
         self.unbind()
         return result
@@ -444,7 +436,6 @@ class LDAPUserManager(object):
         :type groups: list
         """
         roles_dn = self.roles_filter(scope=scope)
-
         search_filter = '(uniqueMember={0})'.format(user_dn)
 
         if groups is not None:

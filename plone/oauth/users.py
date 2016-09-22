@@ -87,6 +87,7 @@ def get_user(request):
     with (yield from db_token) as redis:
         result = yield from redis.get(user_scope)
 
+    result = None
     if result is not None:
         result = ujson.loads(result)
     else:

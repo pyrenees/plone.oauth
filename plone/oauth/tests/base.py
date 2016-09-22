@@ -112,8 +112,6 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
           * group2 (user@example.com, superuser@plone.com)
           * group3 (user3)
 
-        * localroles
-
         * roles
 
           * site administrator (manager@example.com)
@@ -240,6 +238,16 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
         self.create_user()
         self.create_group()
 
+    @property
+    def cauth_code(self):
+        self.app.params['response_type'] = 'code'
+        self.app.params['client_id'] = self.client_id
+        self.app.params['service_token'] = self.service_token
+        self.app.params['scopes'] = [self.scope]
+        r = self.call_horus(get_authorization_code)
+        assert r.status_code == 200
+        return r.decoded['auth_code']
+
     def create_superuser(self):
         self.conn.add(
             self.ldap.user_filter.format(username=self.superuser_id),
@@ -253,10 +261,12 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
             )
 
         # We get the working token for the superuser
-        self.app.params['grant_type'] = 'password'
-        self.app.params['code'] = self.service_token
+        self.app.params['grant_type'] = 'user'
+        self.app.params['code'] = self.cauth_code
+        self.app.params['client_id'] = self.client_id
         self.app.params['username'] = self.superuser_id
         self.app.params['password'] = self.superuser_pwd
+        self.app.params['scopes'] = [self.scope]
         self.app.user_agent = 'DUMMY'
         self.app.client_addr = '127.0.0.1'
         r = self.call_horus(get_token)
@@ -270,10 +280,6 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
             )
         self.conn.add(
             self.ldap.groups_filter(self.scope),
-            'organizationalUnit',
-            )
-        self.conn.add(
-            self.ldap.localroles_filter(self.scope),
             'organizationalUnit',
             )
         self.conn.add(
@@ -292,22 +298,14 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
             'userPassword': self.client_secret
             }
             )
-        # We get the authorize code
-        self.app.params['response_type'] = 'code'
-        self.app.params['client_id'] = self.client_id
-        self.app.params['scope'] = self.scope
-        r = self.call_horus(get_authorization_code)
-        assert r.status_code == 200
-        self.auth_code = r.decoded['auth_code']
 
         # We get the working token for the client app
-        self.app.params['grant_type'] = 'authorization_code'
-        self.app.params['code'] = self.auth_code
+        self.app.params['grant_type'] = 'service'
         self.app.params['client_id'] = self.client_id
         self.app.params['client_secret'] = self.client_secret
         r = self.call_horus(get_token)
         assert r.status_code == 200
-        self.service_token = r.decoded['access_token']
+        self.service_token = r.decoded['service_token']
 
     def create_manager(self):
         loop = asyncio.get_event_loop()
@@ -322,10 +320,12 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
             )
 
         # We get the working token for the manager
-        self.app.params['grant_type'] = 'password'
-        self.app.params['code'] = self.service_token
+        self.app.params['grant_type'] = 'user'
+        self.app.params['code'] = self.cauth_code
+        self.app.params['client_id'] = self.client_id
         self.app.params['username'] = self.manager_id
         self.app.params['password'] = self.manager_pwd
+        self.app.params['scopes'] = [self.scope]
         self.app.user_agent = 'DUMMY'
         self.app.client_addr = '127.0.0.1'
         r = self.call_horus(get_token)
@@ -337,10 +337,12 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
         loop.run_until_complete(self.ldap.addUser(self.user_id, self.user_pwd))
 
         # We get the working token for the user
-        self.app.params['grant_type'] = 'password'
-        self.app.params['code'] = self.service_token
+        self.app.params['grant_type'] = 'user'
+        self.app.params['code'] = self.cauth_code
+        self.app.params['client_id'] = self.client_id
         self.app.params['username'] = self.user_id
         self.app.params['password'] = self.user_pwd
+        self.app.params['scopes'] = [self.scope]
         self.app.user_agent = 'DUMMY'
         self.app.client_addr = '127.0.0.1'
         r = self.call_horus(get_token)
@@ -351,10 +353,11 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
         loop.run_until_complete(self.ldap.addUser(self.user3_id, self.user3_pwd))
 
         # We get the working token for the user
-        self.app.params['grant_type'] = 'password'
-        self.app.params['code'] = self.service_token
+        self.app.params['grant_type'] = 'user'
+        self.app.params['code'] = self.cauth_code
         self.app.params['username'] = self.user3_id
         self.app.params['password'] = self.user3_pwd
+        self.app.params['scopes'] = [self.scope]
         self.app.user_agent = 'DUMMY'
         self.app.client_addr = '127.0.0.1'
         r = self.call_horus(get_token)
@@ -386,7 +389,6 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
             self.group_id,
             'reader'
             ))
-
 
         group2_dn = ldap.group_filter(scope=self.scope, group=self.group2_id)
         self.conn.add(

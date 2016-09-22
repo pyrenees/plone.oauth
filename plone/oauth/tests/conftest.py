@@ -19,42 +19,42 @@ def pytest_addoption(parser):
 
 secret = 'secret'
 
-@asyncio.coroutine
-def get_token_test(app):
-    # We get the authorize code
-    app.params['response_type'] = 'code'
-    app.params['client_id'] = '11'
-    app.params['scope'] = 'plone'
-    view_callable = asyncio.coroutine(get_authorization_code)
-    info = yield from view_callable(app)
-    assert info.status_code == 200
+# @asyncio.coroutine
+# def get_token_test(app):
+#     # We get the authorize code
+#     app.params['response_type'] = 'code'
+#     app.params['client_id'] = '11'
+#     app.params['scope'] = 'plone'
+#     view_callable = asyncio.coroutine(get_authorization_code)
+#     info = yield from view_callable(app)
+#     assert info.status_code == 200
 
-    info_decoded = jwt.decode(info.body, secret)
+#     info_decoded = jwt.decode(info.body, secret)
 
-    # We get the working token for the client app
-    app.params['grant_type'] = 'authorization_code'
-    app.params['code'] = info_decoded['auth_code']
-    app.params['client_id'] = 11
-    app.params['client_secret'] = '123456'
-    view_callable = asyncio.coroutine(get_token)
-    info = yield from view_callable(app)
-    assert info.status_code == 200
+#     # We get the working token for the client app
+#     app.params['grant_type'] = 'authorization_code'
+#     app.params['code'] = info_decoded['auth_code']
+#     app.params['client_id'] = 11
+#     app.params['client_secret'] = '123456'
+#     view_callable = asyncio.coroutine(get_token)
+#     info = yield from view_callable(app)
+#     assert info.status_code == 200
 
-    info_decoded = jwt.decode(info.body, secret)
-    token = info_decoded['access_token']
+#     info_decoded = jwt.decode(info.body, secret)
+#     token = info_decoded['access_token']
 
-    # We get the working token for the client app
-    app.params['grant_type'] = 'password'
-    app.params['code'] = token
-    app.user_agent = 'DUMMY'
-    app.client_addr = '127.0.0.1'
-    view_callable = asyncio.coroutine(get_token)
-    info = yield from view_callable(app)
-    assert info.status_code == 200
+#     # We get the working token for the client app
+#     app.params['grant_type'] = 'password'
+#     app.params['code'] = token
+#     app.user_agent = 'DUMMY'
+#     app.client_addr = '127.0.0.1'
+#     view_callable = asyncio.coroutine(get_token)
+#     info = yield from view_callable(app)
+#     assert info.status_code == 200
 
-    info_decoded = jwt.decode(info.body, secret)
-    token = info_decoded['token']
-    return token
+#     info_decoded = jwt.decode(info.body, secret)
+#     token = info_decoded['token']
+#     return token
 
 
 @pytest.fixture(scope="module")

@@ -21,6 +21,7 @@ from pyramid_mailer import mailer_factory_from_settings
 
 
 MANAGERS = []
+CORS = []
 
 
 def is_superuser(username):
@@ -36,18 +37,24 @@ def config_db(registry, settings):
     # DB 1 tauth
     # DB 2 token
 
+    # authorization_codes
+    # TOKEN::scope : client_id
     db_pool_cauths = yield from aioredis.create_pool(
         (settings['redis.host'], settings['redis.port']),
         db=0,
         minsize=5,
         maxsize=10)
 
+    # service_tokens
+    # TOKEN : CLIENT_ID
     db_pool_tauth = yield from aioredis.create_pool(
         (settings['redis.host'], settings['redis.port']),
         db=1,
         minsize=5,
         maxsize=10)
 
+    # User tokens
+    # TOKEN : 
     db_pool_token = yield from aioredis.create_pool(
         (settings['redis.host'], settings['redis.port']),
         db=2,
@@ -162,6 +169,9 @@ def main(global_config, **settings):
     manager_id = settings['manager']
     MANAGERS.append(manager_id)
 
+    cors_config = settings.get('cors', '')
+    CORS.extend(cors_config.split(','))
+
     loop = asyncio.get_event_loop()
 
     loop.run_until_complete(config_db(config.registry, settings))
@@ -169,13 +179,13 @@ def main(global_config, **settings):
     # loop.run_until_complete(config_mailer(config.registry, settings))
 
     # Per fer un auth token amb un auth service
-    config.add_settings(ttl_auth_service=120)
+    config.add_settings(ttl_auth_code=120)
 
     # El token de l'usuari
     config.add_settings(ttl_auth=86400) #!24h fins que no tinguem renew!!
 
     # L'auth token del sistema
-    config.add_settings(ttl_access_token=36600)
+    config.add_settings(ttl_service_token=36600)
 
     # TTL search
     config.add_settings(ttl_search=360)

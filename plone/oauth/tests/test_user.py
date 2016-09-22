@@ -33,23 +33,9 @@ class MockClient():
         asyncio.get_event_loop().run_until_complete(self.setup())
 
     @asyncio.coroutine
-    def setup_authorize_code(self):
+    def setup_service_token(self):
         # We get the authorize code
-        self.app.params['response_type'] = 'code'
-        self.app.params['client_id'] = self.client
-        self.app.params['scope'] = self.scope
-        view_callable = asyncio.coroutine(get_authorization_code)
-        info = yield from view_callable(self.app)
-        assert info.status_code == 200
-
-        info_decoded = jwt.decode(info.body, secret)
-        self.auth_code = info_decoded['auth_code']
-
-    @asyncio.coroutine
-    def setup_client_token(self):
-        # We get the working token for the client app
-        self.app.params['grant_type'] = 'authorization_code'
-        self.app.params['code'] = self.auth_code
+        self.app.params['grant_type'] = 'service'
         self.app.params['client_id'] = self.client
         self.app.params['client_secret'] = self.client_secret
         view_callable = asyncio.coroutine(get_token)
@@ -57,15 +43,31 @@ class MockClient():
         assert info.status_code == 200
 
         info_decoded = jwt.decode(info.body, secret)
-        self.service_token = info_decoded['access_token']
+        self.service_token = info_decoded['service_token']
+
+    @asyncio.coroutine
+    def setup_authorize_code(self):
+        # We get the authorize code
+        self.app.params['response_type'] = 'code'
+        self.app.params['client_id'] = self.client
+        self.app.params['service_token'] = self.service_token
+        self.app.params['scopes'] = [self.scope]
+        view_callable = asyncio.coroutine(get_authorization_code)
+        info = yield from view_callable(self.app)
+        assert info.status_code == 200
+
+        info_decoded = jwt.decode(info.body, secret)
+        self.auth_code = info_decoded['auth_code']
+
 
     @asyncio.coroutine
     def setup_user_token(self):
         # We get the working token for the user
-        self.app.params['grant_type'] = 'password'
-        self.app.params['code'] = self.service_token
+        self.app.params['grant_type'] = 'user'
+        self.app.params['code'] = self.auth_code
         self.app.params['username'] = self.user
         self.app.params['password'] = self.user_password
+        self.app.params['scopes'] = [self.scope]
         self.app.user_agent = 'DUMMY'
         self.app.client_addr = '127.0.0.1'
         view_callable = asyncio.coroutine(get_token)
@@ -99,10 +101,11 @@ class MockClient():
         assert info_decoded['result'] in ('success', 'attributeOrValueExists')
 
         # We get the working token for the manager
-        self.app.params['grant_type'] = 'password'
-        self.app.params['code'] = self.service_token
+        self.app.params['grant_type'] = 'user'
+        self.app.params['code'] = self.auth_code
         self.app.params['username'] = self.manager
         self.app.params['password'] = self.manager_password
+        self.app.params['scopes'] = [self.scope]
         self.app.user_agent = 'DUMMY'
         self.app.client_addr = '127.0.0.1'
         view_callable = asyncio.coroutine(get_token)
@@ -116,10 +119,11 @@ class MockClient():
     @asyncio.coroutine
     def setup_superuser_token(self):
         # We get the working token for the superuser
-        self.app.params['grant_type'] = 'password'
-        self.app.params['code'] = self.service_token
+        self.app.params['grant_type'] = 'user'
+        self.app.params['code'] = self.auth_code
         self.app.params['username'] = self.superuser
         self.app.params['password'] = self.superuser_password
+        self.app.params['scopes'] = [self.scope]
         self.app.user_agent = 'DUMMY'
         self.app.client_addr = '127.0.0.1'
         view_callable = asyncio.coroutine(get_token)
@@ -131,10 +135,12 @@ class MockClient():
 
     @asyncio.coroutine
     def setup(self):
+        yield from self.setup_service_token()
         yield from self.setup_authorize_code()
-        yield from self.setup_client_token()
         yield from self.setup_user_token()
+        yield from self.setup_authorize_code()
         yield from self.setup_superuser_token()
+        yield from self.setup_authorize_code()
         yield from self.setup_manager_token()
 
     def setup_app_user(self):
@@ -288,11 +294,14 @@ def test_endpoints(app):
         info_decoded = jwt.decode(info.body, secret)
         assert info_decoded['result'] == 'entryAlreadyExists'
 
+        yield from mock.setup_authorize_code()
+
         #login added user
-        mock.app.params['grant_type'] = 'password'
-        mock.app.params['code'] = mock.service_token
+        mock.app.params['grant_type'] = 'user'
+        mock.app.params['code'] = mock.auth_code
         mock.app.params['username'] = mock.new_user
         mock.app.params['password'] = 'password'
+        mock.app.params['scopes'] = [mock.scope]
         view_callable = asyncio.coroutine(get_token)
         info = yield from view_callable(mock.app)
         assert info.status_code == 200

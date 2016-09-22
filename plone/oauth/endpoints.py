@@ -16,18 +16,37 @@ import os
 log = logging.getLogger(__name__)
 
 
-# get_authorization_code
-# In case is a trust service we don't need redirect_uri
 @view_config(route_name='get_authorization_code',
-             request_method='GET',
+             request_method='OPTIONS',
+             http_cache=0)
+@asyncio.coroutine
+def get_authorization_code_options(request):
+    origin = request.headers.get('Origin', None)
+    if not origin:
+        raise HTTPBadRequest('Origin header is missing')
+    if origin in plone.oauth.CORS:
+        response = Response()
+        response.headers['Access-Control-Allow-Headers'] = 'origin, content-type, accept'
+        response.headers['Access-Control-Allow-Methods'] = 'GET'
+        response.headers['Access-Control-Allow-Origin'] = origin
+        return response
+    else:
+        raise HTTPBadRequest('Not valid origin' + origin)
+
+
+
+# get_authorization_code
+@view_config(route_name='get_authorization_code',
+             request_method='POST',
              http_cache=0)
 @asyncio.coroutine
 def get_authorization_code(request):
     """
-    Request: GET /get_authorization_code
-                    ?response_type=code
+    Request: POST /get_authorization_code
+                    ?response_type=[code, url]
                     &client_id={CLIENT_ID}
-                    &scope={SCOPE}
+                    &service_token={SERVICE_TOKEN}
+                    &scopes={SCOPE}
                     [&redirect_uri={REDIRECT_URI}]
     Response: HTTP 302
                 Location={REDIRECT_URI}
@@ -38,37 +57,57 @@ def get_authorization_code(request):
                     ?error=access_denied
 
     """
+
+    try:
+        json_body = request.json_body
+    except:
+        json_body = {}
+
     response_type = request.params.get('response_type', None)
+    response_type = json_body.get('response_type', response_type)
     if response_type is None:
         raise HTTPBadRequest('response_type is missing')
 
-    if response_type != 'code':
-        raise HTTPNotImplemented('response_type needs to be code')
+    if response_type not in ['code', 'url']:
+        raise HTTPBadRequest('response_type needs to be code or url')
 
     client_id = request.params.get('client_id', None)
+    client_id = json_body.get('client_id', client_id)
     if client_id is None:
         raise HTTPBadRequest('client_id is missing')
 
-    #try:
-    #    client_id = int(client_id)
-    #except:
-    #    raise HTTPBadRequest('client_id is not number')
+    scopes = request.params.get('scopes', None)
+    if scopes is None:
+        raise HTTPBadRequest('scopes is missing')
 
-    redirect_uri = request.params.get('redirect_uri', None)
+    if not isinstance(scopes, list):
+        scopes = scopes.split(',')
+    scopes = json_body.get('scopes', scopes)
 
-    scope = request.params.get('scope', None)
-    if scope is None:
-        raise HTTPBadRequest('scope is missing')
+    service_token = request.params.get('service_token', None)
+    service_token = json_body.get('service_token', service_token)
+    if service_token is None:
+        raise HTTPBadRequest('service_token is missing')
+
+    db = request.registry.settings['db_tauths']
+
+    # We check the service token
+    with (yield from db) as redis:
+        service_client_id = yield from redis.get(service_token)
+
+    if service_client_id is None:
+        raise HTTPBadRequest('Invalid Service Token')
 
     # We need to check if the client is ok for the scope
     # Table of valid clients and scopes
     config = request.registry.settings['db_config']
-    ttl = request.registry.settings['ttl_auth_service']
+    ttl = request.registry.settings['ttl_auth_code']
     secret = request.registry.settings['jwtsecret']
     debug = request.registry.settings['debug']
 
-    if not config.hasScope(scope):
-        return HTTPUnauthorized("Wrong scope")
+    for scope in scopes:
+        if not config.hasScope(scope):
+            return HTTPUnauthorized("Wrong scope")
 
     if not config.hasClient(client_id):
         # S'hauria de reenviar a authentificacio de l'usuari per acceptar-ho
@@ -80,10 +119,11 @@ def get_authorization_code(request):
     db = request.registry.settings['db_cauths']
 
     # We store the client
-    client_scope = str(client_id) + '::' + scope
-    with (yield from db) as redis:
-        yield from redis.set(auth_code, client_scope)
-        yield from redis.expire(auth_code, ttl)
+    for scope in scopes:
+        client_scope = str(client_id)
+        with (yield from db) as redis:
+            yield from redis.set(auth_code + '::' + scope, client_scope)
+            yield from redis.expire(auth_code, ttl)
 
     # We log it
     if debug:
@@ -99,14 +139,42 @@ def get_authorization_code(request):
         secret,
         algorithm='HS256')
 
-    if redirect_uri is not None:
-        # Redirect to url
-        return HTTPFound(location=redirect_uri + '?code=' + token)
+    if response_type == 'url':
+        redirect_uri = request.params.get('redirect_uri', None)
+        if redirect_uri is None:
+            raise HTTPBadRequest('redirect_uri is missing')
+
+        response = HTTPFound(location=redirect_uri + '?code=' + token)
     else:
-        return Response(body=token, content_type='text/plain')
+        response = Response(body=token, content_type='text/plain')
+
+    origin = request.headers.get('Origin', None)
+    if origin and origin in plone.oauth.CORS:
+        response.headers['Access-Control-Allow-Origin'] = origin
+    elif origin:
+        return HTTPUnauthorized("Wrong Origin")
+
+    return response
 
 
-# Protected on header with the X-Intranetum-AuthService
+@view_config(route_name='get_auth_token',
+             request_method='OPTIONS',
+             http_cache=0)
+@asyncio.coroutine
+def get_auth_token_options(request):
+    origin = request.headers.get('Origin', None)
+    if not origin:
+        raise HTTPBadRequest('Origin header is missing')
+    if origin in plone.oauth.CORS:
+        response = Response()
+        response.headers['Access-Control-Allow-Headers'] = 'origin, content-type, accept'
+        response.headers['Access-Control-Allow-Methods'] = 'POST'
+        response.headers['Access-Control-Allow-Origin'] = origin
+        return response
+    else:
+        raise HTTPBadRequest('Not valid origin' + origin)
+
+
 # get_token
 @view_config(route_name='get_auth_token',
              request_method='POST',
@@ -114,11 +182,12 @@ def get_authorization_code(request):
 @asyncio.coroutine
 def get_token(request):
     """
-    Request: POST /get_token
-                grant_type=[password, authorization_code]
-                code={SERVICETOKEN}  | code={AUTHCODE}
-                username={CLIENT_ID} | client_id={CLIENT_ID}
-                password={CLIENT_ID} | client_secret={CLIENT_SECRET}
+    Request: POST /get_auth_token
+                grant_type=[user, service]
+                client_id={CLIENT_ID}
+                username={USERNAME}   | client_secret={CLIENT_SECRET}
+                password={PASSWORD}   |
+                code={AUTHCODE}       |
                 [scope={SCOPE}]
     Response: HTTP 302
                 Location={REDIRECT_URI}
@@ -129,108 +198,104 @@ def get_token(request):
                     ?error=access_denied
 
     """
-    scope = request.params.get('scope', None)
-    if scope is None:
-        raise HTTPBadRequest('scope is missing')
+    try:
+        json_body = request.json_body
+    except:
+        json_body = {}
 
     grant_type = request.params.get('grant_type', None)
-    if grant_type is None:
-        raise HTTPBadRequest('response_type is missing')
+    grant_type = json_body.get('grant_type', grant_type)
 
-    if grant_type not in ['password', 'authorization_code']:
-        raise HTTPNotImplemented('grant_type not valid')
+    if grant_type is None:
+        raise HTTPBadRequest('grant_type is missing')
+
+    if grant_type not in ['user', 'service']:
+        raise HTTPBadRequest('grant_type not valid')
+
+    client_id = request.params.get('client_id', None)
+    client_id = json_body.get('client_id', client_id)
+
+    if client_id is None:
+        raise HTTPBadRequest('client_id is missing')
 
     secret = request.registry.settings['jwtsecret']
     debug = request.registry.settings['debug']
 
-    if grant_type == 'authorization_code':
-        client_id = request.params.get('client_id', None)
-        if client_id is None:
-            raise HTTPBadRequest('client_id is missing')
-
+    if grant_type == 'service':
+        # Get client secret
         client_secret = request.params.get('client_secret', None)
+        client_secret = json_body.get('client_secret', client_secret)
         if client_secret is None:
             raise HTTPBadRequest('client_secret is missing')
 
-        code = request.params.get('code', None)
-        if code is None:
-            raise HTTPBadRequest('code is missing')
-
-        # check auth code
-        db_cauths = request.registry.settings['db_cauths']
-        with (yield from db_cauths) as redis:
-            db_client_id = yield from redis.get(code)
-        try:
-            post_splited = db_client_id.split(b'::')
-        except:
-            raise HTTPBadRequest('Bad scope stored for the client')
-        try:
-            real_db_client_id = post_splited[0].decode()
-        except:
-            raise HTTPBadRequest('Bad client_id stored for the client')
-        try:
-            real_client_id = client_id
-            real_scope = post_splited[1]
-        except:
-            raise HTTPBadRequest('BAD client ID INT')
-
-        if real_db_client_id != real_client_id:
-            raise HTTPBadRequest('BAD client ID')
-
-        if real_scope != bytes(scope, 'utf-8'):
-            raise HTTPBadRequest('BAD scope')
-
+        # Get DB
         db_config = request.registry.settings['db_config']
-        if not db_config.clientAuth(real_client_id, client_secret):
+        if not db_config.clientAuth(client_id, client_secret):
             raise HTTPBadRequest('BAD client secret')
 
-        # If its ok create a authorization code
+        # If its ok create a service token
         token = uuid.uuid4().hex
-        ttl = request.registry.settings['ttl_access_token']
 
+        # We store the service_token
+        ttl = request.registry.settings['ttl_service_token']
         db_tauths = request.registry.settings['db_tauths']
-
-        # We store the client
-        client_scope = str(client_id) + '::' + scope
         with (yield from db_tauths) as redis:
-            yield from redis.set(token, client_scope)
+            yield from redis.set(token, str(client_id))
             yield from redis.expire(token, ttl)
 
         # We log it
         if debug:
-            log.warn('Access Code from Client : %s', client_id)
+            log.warn('Service token for client : %s', client_id)
 
-        # if its ok redirect to get_access_token
+        # generate JWT
         token = jwt.encode(
             {
                 'iat': datetime.utcnow(),
                 'exp': datetime.utcnow() + timedelta(seconds=ttl),
-                'access_token': token
+                'service_token': token
             },
             secret,
             algorithm='HS256')
 
-        return Response(body=token, content_type='text/plain')
+        response = Response(body=token, content_type='text/plain')
 
-    if grant_type == 'password':
+    if grant_type == 'user':
 
-        access_token = request.params.get('code', None)
-        if access_token is None:
+        scopes = request.params.get('scopes', None)
+        if not isinstance(scopes, list):
+            scopes = scopes.split(',')
+        scopes = json_body.get('scopes', scopes)
+
+        if scopes is None:
+            raise HTTPBadRequest('scopes is missing')
+
+        code = request.params.get('code', None)
+        code = json_body.get('code', code)
+        if code is None:
             raise HTTPBadRequest('code is missing')
 
-        db_tauths = request.registry.settings['db_tauths']
+        db_cauths = request.registry.settings['db_cauths']
 
-        with (yield from db_tauths) as redis:
-            client_id = yield from redis.get(access_token)
+        with (yield from db_cauths) as redis:
+            for scope in scopes:
+                db_client_id = yield from redis.get(code + '::' + scope)
 
-        if client_id is None:
-            raise HTTPBadRequest('Invalid Auth code')
+                if db_client_id is None:
+                    raise HTTPBadRequest('Invalid Auth code')
+
+                if db_client_id != bytes(client_id, encoding='utf-8'):
+                    raise HTTPBadRequest('Invalid Client ID')
+                yield from redis.delete(code + '::' + scope)
 
         username = request.params.get('username', None)
+        username = json_body.get('username', username)
+
         if username is None:
             raise HTTPBadRequest('username is missing')
 
         password = request.params.get('password', None)
+        password = json_body.get('password', password)
+
         if password is None:
             raise HTTPBadRequest('Password is missing')
 
@@ -283,7 +348,15 @@ def get_token(request):
             secret,
             algorithm='HS256')
 
-        return Response(body=token, content_type='text/plain')
+        response = Response(body=token, content_type='text/plain')
+
+    origin = request.headers.get('Origin', None)
+    if origin and origin in plone.oauth.CORS:
+        response.headers['Access-Control-Allow-Origin'] = origin
+    elif origin:
+        return HTTPUnauthorized("Wrong Origin")
+
+    return response
 
 
 @view_config(route_name='password',
@@ -304,17 +377,25 @@ def set_password(request):
                 ERROR
 
     """
+    try:
+        json_body = request.json_body
+    except:
+        json_body = {}
+
     access_token = request.params.get('code', None)
+    access_token = json_body.get('code', access_token)
     if access_token is None:
         raise HTTPBadRequest('code is missing')
 
     db_tauths = request.registry.settings['db_tauths']
 
     client_id = request.params.get('client_id', None)
+    client_id = json_body.get('client_id', client_id)
     if client_id is None:
         raise HTTPBadRequest('client_id is missing')
 
     token = request.params.get('token', None)
+    token = json_body.get('token', token)
     if token is None:
         raise HTTPBadRequest('token is missing')
 
@@ -348,6 +429,7 @@ def set_password(request):
     user = user.decode('utf-8')
 
     password = request.params.get('password', None)
+    password = json_body.get('password', password)
     if password is None:
         raise HTTPBadRequest('password invalid')
 
@@ -426,21 +508,30 @@ def refresh_token(request):
                 ERROR
 
     """
+    try:
+        json_body = request.json_body
+    except:
+        json_body = {}
+
     access_token = request.params.get('code', None)
+    access_token = json_body.get('code', access_token)
     if access_token is None:
         raise HTTPBadRequest('code is missing')
 
     db_tauths = request.registry.settings['db_tauths']
 
     client_id = request.params.get('client_id', None)
+    client_id = json_body.get('client_id', client_id)
     if client_id is None:
         raise HTTPBadRequest('client_id is missing')
 
     token = request.params.get('token', None)
+    token = json_body.get('token', token)
     if token is None:
         raise HTTPBadRequest('token is missing')
 
     request_user = request.params.get('user', None)
+    request_user = json_body.get('user', request_user)
     if request_user is None:
         raise HTTPBadRequest('user is missing')
 

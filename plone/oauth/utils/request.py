@@ -38,6 +38,7 @@ def check_manager(username, scope, request):
             yield from redis.expire(user_scope, ttl)
 
     roles = result.get('roles', {})
+    # XXX: TODO not hardcoded
     if 'manager' in roles or 'site administrator' in roles:
         return True
 

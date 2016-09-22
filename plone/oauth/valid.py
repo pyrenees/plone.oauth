@@ -25,7 +25,7 @@ def valid_token(request):
 
     Request: POST /valid_token
         Body :
-            - code
+            - service_code
             - token
 
     Response HTTP 200 in JWT token:
@@ -35,17 +35,16 @@ def valid_token(request):
 
     """
 
-    access_token = request.params.get('code', None)
-    if access_token is None:
+    service_token = request.params.get('code', None)
+    if service_token is None:
         raise HTTPBadRequest('code is missing')
 
     db_tauths = request.registry.settings['db_tauths']
-
     with (yield from db_tauths) as redis:
-        client_id = yield from redis.get(access_token)
+        client_id = yield from redis.get(service_token)
 
     if client_id is None:
-        raise HTTPBadRequest('Invalid Auth code')
+        raise HTTPBadRequest('Invalid Service Token')
 
     token = request.params.get('token', None)
     if token is None:
