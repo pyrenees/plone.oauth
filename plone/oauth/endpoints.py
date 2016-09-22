@@ -16,25 +16,6 @@ import os
 log = logging.getLogger(__name__)
 
 
-@view_config(route_name='get_authorization_code',
-             request_method='OPTIONS',
-             http_cache=0)
-@asyncio.coroutine
-def get_authorization_code_options(request):
-    origin = request.headers.get('Origin', None)
-    if not origin:
-        raise HTTPBadRequest('Origin header is missing')
-    if origin in plone.oauth.CORS:
-        response = Response()
-        response.headers['Access-Control-Allow-Headers'] = 'origin, content-type, accept'
-        response.headers['Access-Control-Allow-Methods'] = 'GET'
-        response.headers['Access-Control-Allow-Origin'] = origin
-        return response
-    else:
-        raise HTTPBadRequest('Not valid origin' + origin)
-
-
-
 # get_authorization_code
 @view_config(route_name='get_authorization_code',
              request_method='POST',
@@ -164,7 +145,10 @@ def get_authorization_code(request):
 def get_auth_token_options(request):
     origin = request.headers.get('Origin', None)
     if not origin:
-        raise HTTPBadRequest('Origin header is missing')
+        try:
+            origin = request.headers.__dict__['environ']['HTTP_Origin']
+        except:
+            raise HTTPBadRequest('Origin header is missing')
     if origin in plone.oauth.CORS:
         response = Response()
         response.headers['Access-Control-Allow-Headers'] = 'origin, content-type, accept'
@@ -260,9 +244,8 @@ def get_token(request):
         response = Response(body=token, content_type='text/plain')
 
     if grant_type == 'user':
-
         scopes = request.params.get('scopes', None)
-        if not isinstance(scopes, list):
+        if scopes and not isinstance(scopes, list):
             scopes = scopes.split(',')
         scopes = json_body.get('scopes', scopes)
 
@@ -351,6 +334,10 @@ def get_token(request):
         response = Response(body=token, content_type='text/plain')
 
     origin = request.headers.get('Origin', None)
+    try:
+        origin = request.headers.__dict__['environ']['HTTP_Origin']
+    except:
+        origin = None
     if origin and origin in plone.oauth.CORS:
         response.headers['Access-Control-Allow-Origin'] = origin
     elif origin:
