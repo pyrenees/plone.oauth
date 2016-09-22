@@ -6,7 +6,7 @@
 
     POST http://OAUTH/get_auth_token
         {
-            'response_type': 'service',
+            'grant_type': 'service',
             'client_id': 'SERVER_CLIENT_ID',
             'client_secret': 'SERVER_CLIENT_SECRET'
         }
@@ -38,7 +38,7 @@
 
     POST http://OAUTH/get_auth_token
         {
-            response_type: 'user',
+            grant_type: 'user',
             client_id: 'WEB_CLIENT_ID',
             username: 'username',
             password: 'password',
