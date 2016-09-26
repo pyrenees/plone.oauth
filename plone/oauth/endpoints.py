@@ -88,10 +88,12 @@ def get_authorization_code(request):
 
     for scope in scopes:
         if not config.hasScope(scope):
+            log.error('Not valid scope ' + scope)
             return HTTPUnauthorized("Wrong scope")
 
     if not config.hasClient(client_id):
         # S'hauria de reenviar a authentificacio de l'usuari per acceptar-ho
+        log.error('Not valid client_id ' + client_id)
         return HTTPUnauthorized("Wrong client id")
 
     # If its ok create a authorization code
