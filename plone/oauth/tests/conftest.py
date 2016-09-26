@@ -76,7 +76,7 @@ def app(request):
         'ldap.config_dn': 'ou=config,dc=plone,dc=com',
         'ldap.config_root_pw': 'secret',
         'ldap.config_root_dn': 'uid=admin,ou=system',
-        'ldap.userProfile': '["person","inetOrgPerson"]',
+        'ldap.user_profile': '["person","inetOrgPerson"]',
         'valid_password': 'plone.oauth.password.valid_password',
         'password_policy': 'plone.oauth.password.password_policy',
         'debug': True,

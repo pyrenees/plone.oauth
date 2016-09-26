@@ -201,7 +201,7 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
         userFilter = 'mail={username},ou=users,' + self.base_dn
         settings['ldap.base_dn'] = self.base_dn
         settings['ldap.config_dn'] = config_dn
-        settings['ldap.userfilter'] = userFilter
+        settings['ldap.user_filter'] = userFilter
         settings['valid_password'] = 'plone.oauth.password.valid_password'
         settings['password_policy'] = 'plone.oauth.password.password_policy'
         new_app = main({}, **settings)

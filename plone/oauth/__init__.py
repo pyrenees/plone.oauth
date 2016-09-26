@@ -112,11 +112,11 @@ def config_ldap(registry, settings):
     if registry.settings['backend'] == 'LDAPADMIN':
         ldap_object = LDAPUserManager(
             ldap_server=server,
-            user_filter=registry.settings['ldap.userfilter'],
+            user_filter=registry.settings['ldap.user_filter'],
             base_dn=registry.settings['ldap.base_dn'],
             root_dn=registry.settings['ldap.root_dn'],
             passwd_dn=registry.settings['ldap.root_pw'],
-            user_profile=json.loads(registry.settings['ldap.userProfile']),
+            user_profile=json.loads(registry.settings['ldap.user_profile']),
             read_only=False,
             cache_users=db_pool_users,
             cache_groups=db_pool_groups)
@@ -124,7 +124,7 @@ def config_ldap(registry, settings):
     elif registry.settings['backend'] == 'LDAP':
         ldap_object = LDAPUserManager(
             server,
-            config.registry.settings['ldap.userfilter'])
+            config.registry.settings['ldap.user_filter'])
 
     registry.settings['user_manager'] = ldap_object
 
