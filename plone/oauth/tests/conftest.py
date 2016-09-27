@@ -68,7 +68,7 @@ def app(request):
         'pyramid.default_locale_name': 'en',
         'jwtsecret': secret,
         'ldap.base_dn': 'dc=plone,dc=com',
-        'ldap.userfilter': 'mail={username},ou=users,dc=plone,dc=com',
+        'ldap.user_filter': 'mail={username},ou=users,dc=plone,dc=com',
         'ldap.root_dn': 'uid=admin,ou=system',
         'ldap.root_pw': 'secret',
         'ldap.server': request.config.getoption("--ldap") + ':' + request.config.getoption("--ldap-port"),
