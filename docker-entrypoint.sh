@@ -3,8 +3,8 @@ set -e
 
 echo "CONFIG API"
 
-cd /plone
-python config-oauth.py
+cd /app
+python config.py
 
 echo "START OAUTH"
 
