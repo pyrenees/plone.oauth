@@ -158,7 +158,7 @@ def get_auth_token_options(request):
         response.headers['Access-Control-Allow-Origin'] = origin
         return response
     else:
-        raise HTTPBadRequest('Not valid origin' + origin)
+        raise HTTPBadRequest('Not valid origin : ' + origin)
 
 
 # get_token

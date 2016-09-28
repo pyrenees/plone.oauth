@@ -19,6 +19,9 @@ from plone.oauth import views
 
 from pyramid_mailer import mailer_factory_from_settings
 
+import logging
+
+log = logging.getLogger(__name__)
 
 MANAGERS = []
 CORS = []
@@ -171,6 +174,7 @@ def main(global_config, **settings):
 
     cors_config = settings.get('cors', '')
     CORS.extend(cors_config.split(','))
+    log.info(' Enabled cors : ' + str(CORS))
 
     loop = asyncio.get_event_loop()
 
@@ -232,6 +236,7 @@ def main(global_config, **settings):
     config.scan(groups)
     config.scan(views)
     return config.make_wsgi_app()
+
 
 def includeme(config):
     """
