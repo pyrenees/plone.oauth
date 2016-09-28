@@ -336,10 +336,11 @@ def get_token(request):
         response = Response(body=token, content_type='text/plain')
 
     origin = request.headers.get('Origin', None)
-    try:
-        origin = request.headers.__dict__['environ']['HTTP_Origin']
-    except:
-        origin = None
+    if origin is None:
+        try:
+            origin = request.headers.__dict__['environ']['HTTP_Origin']
+        except:
+            origin = None
     if origin and origin in plone.oauth.CORS:
         response.headers['Access-Control-Allow-Origin'] = origin
     elif origin:
