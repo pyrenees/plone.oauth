@@ -374,7 +374,8 @@ class LDAPUserManager(object):
             try:
                 res = ldap_conn.response[0]
             except:
-                res = ldap_conn.get_response(r)[0][0]
+                res = [x for x in ldap_conn.get_response(r)[0]]
+                res = res[0]
             with (yield from self.cache_users) as redis:
                 redis.set(res['dn'], ujson.dumps(dict(res['attributes'])))
                 redis.expire(res['dn'], self.ttl_users)
