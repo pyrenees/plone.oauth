@@ -408,8 +408,6 @@ class LDAPUserManager(object):
     def getUserName(self, username):
         user_dn = self.user_filter.format(username=username)
         ldap_conn = self.bind_root_readonly()
-        if r:
-            roles = ldap_conn.get_response(r)[0]
         result = yield from self.getUser(username, ldap_conn)
         return ' '.join(result['cn'])
 
