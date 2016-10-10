@@ -383,11 +383,6 @@ def set_password(request):
     except:
         json_body = {}
 
-    # access_token = request.params.get('code', None)
-    # access_token = json_body.get('code', access_token)
-    # if access_token is None:
-    #     raise HTTPBadRequest('code is missing')
-
     db_tauths = request.registry.settings['db_tauths']
 
     client_id = request.params.get('client_id', None)
@@ -399,25 +394,6 @@ def set_password(request):
     token = json_body.get('token', token)
     if token is None:
         raise HTTPBadRequest('token is missing')
-
-    # with (yield from db_tauths) as redis:
-    #     db_client_id = yield from redis.get(access_token)
-
-    # try:
-    #     post_splited = db_client_id.split(b'::')
-    # except:
-    #     raise HTTPBadRequest('Bad scope stored for the client')
-    # try:
-    #     real_db_client_id = post_splited[0].decode()
-    # except:
-    #     raise HTTPBadRequest('Bad client_id stored for the client')
-    # try:
-    #     int_client_id = client_id
-    # except:
-    #     raise HTTPBadRequest('bad client_id')
-
-    # if real_db_client_id is None or real_db_client_id != int_client_id:
-    #     raise HTTPBadRequest('Invalid Auth code')
 
     db_token = request.registry.settings['db_token']
 

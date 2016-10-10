@@ -238,7 +238,7 @@ class LDAPUserManager(object):
             )
         result = self.parse_async_add(done)
         if result == 'success':
-            return getUser(user_dn, self.ldap_conn_mng)
+            return True
         else:
             return False
 
