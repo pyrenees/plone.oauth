@@ -140,11 +140,7 @@ def get_authorization_code(request):
     return response
 
 
-@view_config(route_name='get_auth_token',
-             request_method='OPTIONS',
-             http_cache=0)
-@asyncio.coroutine
-def get_auth_token_options(request):
+def preflight(request):
     origin = request.headers.get('Origin', None)
     if not origin:
         try:
@@ -159,6 +155,14 @@ def get_auth_token_options(request):
         return response
     else:
         raise HTTPBadRequest('Not valid origin : ' + origin)
+
+
+@view_config(route_name='get_auth_token',
+             request_method='OPTIONS',
+             http_cache=0)
+@asyncio.coroutine
+def get_auth_token_options(request):
+    return preflight(request)
 
 
 # get_token
@@ -344,9 +348,17 @@ def get_token(request):
     if origin and origin in plone.oauth.CORS:
         response.headers['Access-Control-Allow-Origin'] = origin
     elif origin:
-        return HTTPUnauthorized("Wrong Origin")
+        return HTTPUnauthorized("Wrong Origin " + origin)
 
     return response
+
+
+@view_config(route_name='password',
+             request_method='OPTIONS',
+             http_cache=0)
+@asyncio.coroutine
+def set_password_options(request):
+    return preflight(request)
 
 
 @view_config(route_name='password',
@@ -356,10 +368,9 @@ def get_token(request):
 def set_password(request):
     """
     Request: POST /password
-                code={SERVICETOKEN}
                 client_id={CLIENT_ID}
                 token={TOKEN}
-                password={CLIENT_ID}
+                password={NEW_PASSWORD}
     Response: HTTP 200
                 JWT
 
@@ -372,10 +383,10 @@ def set_password(request):
     except:
         json_body = {}
 
-    access_token = request.params.get('code', None)
-    access_token = json_body.get('code', access_token)
-    if access_token is None:
-        raise HTTPBadRequest('code is missing')
+    # access_token = request.params.get('code', None)
+    # access_token = json_body.get('code', access_token)
+    # if access_token is None:
+    #     raise HTTPBadRequest('code is missing')
 
     db_tauths = request.registry.settings['db_tauths']
 
@@ -389,24 +400,24 @@ def set_password(request):
     if token is None:
         raise HTTPBadRequest('token is missing')
 
-    with (yield from db_tauths) as redis:
-        db_client_id = yield from redis.get(access_token)
+    # with (yield from db_tauths) as redis:
+    #     db_client_id = yield from redis.get(access_token)
 
-    try:
-        post_splited = db_client_id.split(b'::')
-    except:
-        raise HTTPBadRequest('Bad scope stored for the client')
-    try:
-        real_db_client_id = post_splited[0].decode()
-    except:
-        raise HTTPBadRequest('Bad client_id stored for the client')
-    try:
-        int_client_id = client_id
-    except:
-        raise HTTPBadRequest('bad client_id')
+    # try:
+    #     post_splited = db_client_id.split(b'::')
+    # except:
+    #     raise HTTPBadRequest('Bad scope stored for the client')
+    # try:
+    #     real_db_client_id = post_splited[0].decode()
+    # except:
+    #     raise HTTPBadRequest('Bad client_id stored for the client')
+    # try:
+    #     int_client_id = client_id
+    # except:
+    #     raise HTTPBadRequest('bad client_id')
 
-    if real_db_client_id is None or real_db_client_id != int_client_id:
-        raise HTTPBadRequest('Invalid Auth code')
+    # if real_db_client_id is None or real_db_client_id != int_client_id:
+    #     raise HTTPBadRequest('Invalid Auth code')
 
     db_token = request.registry.settings['db_token']
 
@@ -428,6 +439,13 @@ def set_password(request):
     if not valid_password(password):
         password_policy = password_policy()
         raise HTTPBadRequest('Password not valid: %s', password_policy)
+
+    config = request.registry.settings['db_config']
+
+    if not config.hasClient(client_id):
+        # S'hauria de reenviar a authentificacio de l'usuari per acceptar-ho
+        log.error('Not valid client_id ' + client_id)
+        return HTTPUnauthorized("Wrong client id")
 
     secret = request.registry.settings['jwtsecret']
     debug = request.registry.settings['debug']
@@ -477,7 +495,28 @@ def set_password(request):
         secret,
         algorithm='HS256')
 
-    return Response(body=newtoken, content_type='text/plain')
+    response = Response(body=newtoken, content_type='text/plain')
+
+    origin = request.headers.get('Origin', None)
+    if origin is None:
+        try:
+            origin = request.headers.__dict__['environ']['HTTP_Origin']
+        except:
+            origin = None
+    if origin and origin in plone.oauth.CORS:
+        response.headers['Access-Control-Allow-Origin'] = origin
+    elif origin:
+        return HTTPUnauthorized("Wrong Origin " + origin)
+
+    return response
+
+
+@view_config(route_name='refresh',
+             request_method='OPTIONS',
+             http_cache=0)
+@asyncio.coroutine
+def refresh_token_options(request):
+    return preflight(request)
 
 
 @view_config(route_name='refresh',
@@ -487,7 +526,6 @@ def set_password(request):
 def refresh_token(request):
     """
     Request: POST /refresh
-                code={SERVICETOKEN}
                 client_id={CLIENT_ID}
                 token={TOKEN}
                 user={USER}
@@ -503,10 +541,10 @@ def refresh_token(request):
     except:
         json_body = {}
 
-    access_token = request.params.get('code', None)
-    access_token = json_body.get('code', access_token)
-    if access_token is None:
-        raise HTTPBadRequest('code is missing')
+    # access_token = request.params.get('code', None)
+    # access_token = json_body.get('code', access_token)
+    # if access_token is None:
+    #     raise HTTPBadRequest('code is missing')
 
     db_tauths = request.registry.settings['db_tauths']
 
@@ -525,24 +563,24 @@ def refresh_token(request):
     if request_user is None:
         raise HTTPBadRequest('user is missing')
 
-    with (yield from db_tauths) as redis:
-        db_client_id = yield from redis.get(access_token)
+    # with (yield from db_tauths) as redis:
+    #     db_client_id = yield from redis.get(access_token)
 
-    try:
-        post_splited = db_client_id.split(b'::')
-    except:
-        raise HTTPBadRequest('Bad scope stored for the client')
-    try:
-        real_db_client_id = post_splited[0].decode()
-    except:
-        raise HTTPBadRequest('Bad client_id stored for the client')
-    try:
-        int_client_id = client_id
-    except:
-        raise HTTPBadRequest('bad client_id')
+    # try:
+    #     post_splited = db_client_id.split(b'::')
+    # except:
+    #     raise HTTPBadRequest('Bad scope stored for the client')
+    # try:
+    #     real_db_client_id = post_splited[0].decode()
+    # except:
+    #     raise HTTPBadRequest('Bad client_id stored for the client')
+    # try:
+    #     int_client_id = client_id
+    # except:
+    #     raise HTTPBadRequest('bad client_id')
 
-    if real_db_client_id is None or real_db_client_id != int_client_id:
-        raise HTTPBadRequest('Invalid Auth code')
+    # if real_db_client_id is None or real_db_client_id != int_client_id:
+    #     raise HTTPBadRequest('Invalid Auth code')
 
     db_token = request.registry.settings['db_token']
 
@@ -556,6 +594,13 @@ def refresh_token(request):
 
     if user != request_user:
         raise HTTPBadRequest('valid user mismatch')
+
+    config = request.registry.settings['db_config']
+
+    if not config.hasClient(client_id):
+        # S'hauria de reenviar a authentificacio de l'usuari per acceptar-ho
+        log.error('Not valid client_id ' + client_id)
+        return HTTPUnauthorized("Wrong client id")
 
     secret = request.registry.settings['jwtsecret']
     debug = request.registry.settings['debug']
@@ -595,4 +640,17 @@ def refresh_token(request):
         secret,
         algorithm='HS256')
 
-    return Response(body=newtoken, content_type='text/plain')
+    response = Response(body=newtoken, content_type='text/plain')
+
+    origin = request.headers.get('Origin', None)
+    if origin is None:
+        try:
+            origin = request.headers.__dict__['environ']['HTTP_Origin']
+        except:
+            origin = None
+    if origin and origin in plone.oauth.CORS:
+        response.headers['Access-Control-Allow-Origin'] = origin
+    elif origin:
+        return HTTPUnauthorized("Wrong Origin " + origin)
+
+    return response
