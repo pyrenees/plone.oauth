@@ -467,6 +467,8 @@ def set_password(request):
 
     db_token = request.registry.settings['db_token']
 
+    userName = user_manager.getUserName(user)
+
     with (yield from db_token) as redis:
         yield from redis.delete(token, user)
         yield from redis.set(newtoken, user)
@@ -490,7 +492,10 @@ def set_password(request):
         {
             'iat': datetime.utcnow(),
             'exp': datetime.utcnow() + timedelta(seconds=ttl),
-            'token': newtoken
+            'token': newtoken,
+            'login': user,
+            'name': userName,
+            'superuser': plone.oauth.is_superuser(user)
         },
         secret,
         algorithm='HS256')
@@ -610,6 +615,10 @@ def refresh_token(request):
     newtoken = uuid.uuid4().hex
     ttl = request.registry.settings['ttl_auth']
 
+    user_manager = request.registry.settings['user_manager']
+
+    userName = user_manager.getUserName(user)
+
     db_token = request.registry.settings['db_token']
 
     with (yield from db_token) as redis:
@@ -635,7 +644,10 @@ def refresh_token(request):
         {
             'iat': datetime.utcnow(),
             'exp': datetime.utcnow() + timedelta(seconds=ttl),
-            'token': newtoken
+            'token': newtoken,
+            'login': user,
+            'name': userName,
+            'superuser': plone.oauth.is_superuser(user)
         },
         secret,
         algorithm='HS256')

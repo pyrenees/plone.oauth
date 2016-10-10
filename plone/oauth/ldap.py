@@ -238,7 +238,7 @@ class LDAPUserManager(object):
             )
         result = self.parse_async_add(done)
         if result == 'success':
-            return True
+            return getUser(user_dn, self.ldap_conn_mng)
         else:
             return False
 
@@ -399,6 +399,14 @@ class LDAPUserManager(object):
                 return None
         except LDAPException:
             return None
+
+
+    @asyncio.coroutine
+    def getUserName(self, username):
+        user_dn = self.user_filter.format(username=username)
+        ldap_conn = self.bind_root_readonly()
+        result = getUser(username, ldap_conn)
+        return ' '.join(result['cn'])
 
 
     @asyncio.coroutine
