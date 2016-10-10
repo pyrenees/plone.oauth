@@ -443,7 +443,7 @@ def set_password(request):
 
     db_token = request.registry.settings['db_token']
 
-    userName = user_manager.getUserName(user)
+    userName = yield from user_manager.getUserName(user)
 
     with (yield from db_token) as redis:
         yield from redis.delete(token, user)
@@ -593,7 +593,7 @@ def refresh_token(request):
 
     user_manager = request.registry.settings['user_manager']
 
-    userName = user_manager.getUserName(user)
+    userName = yield from user_manager.getUserName(user)
 
     db_token = request.registry.settings['db_token']
 
