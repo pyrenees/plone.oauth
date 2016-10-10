@@ -371,7 +371,10 @@ class LDAPUserManager(object):
             search_scope=BASE,
             attributes=USER_ATTRIBUTES)
         if r:
-            res = ldap_conn.response[0]
+            try:
+                res = ldap_conn.response[0]
+            except:
+                res = ldap_conn.get_response(r)[0]
             with (yield from self.cache_users) as redis:
                 redis.set(res['dn'], ujson.dumps(dict(res['attributes'])))
                 redis.expire(res['dn'], self.ttl_users)
@@ -405,6 +408,8 @@ class LDAPUserManager(object):
     def getUserName(self, username):
         user_dn = self.user_filter.format(username=username)
         ldap_conn = self.bind_root_readonly()
+        if r:
+            roles = ldap_conn.get_response(r)[0]
         result = yield from self.getUser(username, ldap_conn)
         return ' '.join(result['cn'])
 
