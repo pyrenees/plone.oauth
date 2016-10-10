@@ -371,12 +371,7 @@ class LDAPUserManager(object):
             search_scope=BASE,
             attributes=USER_ATTRIBUTES)
         if r:
-            try:
-                res = ldap_conn.response[0]
-            except:
-                res = ldap_conn.get_response(r)[0]
-                res = [x for x in res]
-                res = res[0]
+            res = ldap_conn.response[0]
             with (yield from self.cache_users) as redis:
                 redis.set(res['dn'], ujson.dumps(dict(res['attributes'])))
                 redis.expire(res['dn'], self.ttl_users)
@@ -405,15 +400,26 @@ class LDAPUserManager(object):
         except LDAPException:
             return None
 
-
     @asyncio.coroutine
     def getUserName(self, username):
-        user_dn = self.user_filter.format(username=username)
+        dn = self.user_filter.format(username=username)
+        with (yield from self.cache_users) as redis:
+            user = yield from redis.get(dn)
+            if user and user != b'{}':
+                return ujson.loads(user)
         ldap_conn = self.bind_root_readonly()
-        result = yield from self.getUser(username, ldap_conn)
+        r = ldap_conn.search(
+            dn,
+            '(objectClass=*)',
+            search_scope=BASE,
+            attributes=USER_ATTRIBUTES)
+        if r:
+            names = ldap_conn.get_response(r)[0]
+            res = [res['attributes']['cn'][0] for res in names]           
+        else:
+            res = []
         ldap_conn.unbind()
-        return ' '.join(result['cn'])
-
+        return ' '.join(res)
 
     @asyncio.coroutine
     def get_user_groups(self, ldap_conn, scope, user_dn):
