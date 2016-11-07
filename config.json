@@ -1,0 +1,27 @@
+{
+    "valid_password": "plone.oauth.password.valid_password",
+    "password_policy": "plone.oauth.password.password_policy",
+    "jwtsecret": "secret",
+
+    "ldap.users": "",
+    "ldap.users.dn": "",
+    "ldap.users.passwd": "",
+    "ldap.users.filter": "mail={username},ou=users,dc=example,dc=com",
+    "ldap.users.profile": ["person", "inetOrgPerson"],
+
+    "redis.host": "127.0.0.1",
+    "redis.port": 6379,
+
+    "ldap.server": "127.0.0.1:10389",
+    "ldap.server.passwd": "secret",
+    "ldap.server.dn": "uid=admin,ou=system",
+    "debug": 1,
+    "cors": [""],
+
+    "mail.host": "",
+    "mail.port": 587,
+    "mail.username": "",
+    "mail.password": "",
+    "mail.tls": 1,
+    "mail.ssl": 0
+}

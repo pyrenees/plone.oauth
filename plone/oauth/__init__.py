@@ -1,9 +1,7 @@
 import logging.config
 
-from pyramid.config import Configurator
 import aioredis
 import asyncio
-import sys
 import importlib
 import json
 from ldap3 import Server
@@ -12,26 +10,39 @@ from plone.oauth.config import LDAPConfigManager
 
 from plone.oauth import endpoints
 from plone.oauth import search
-from plone.oauth import valid
+from plone.oauth.valid import ping, say_hello
 from plone.oauth import users
 from plone.oauth import groups
 from plone.oauth import views
 
+from aiohttp_swagger import setup_swagger
+
+from aiohttp import web
+import aiohttp_cors
+
 from pyramid_mailer import mailer_factory_from_settings
 
 import logging
+
+import jwt
+from jwt.contrib.algorithms.pycrypto import RSAAlgorithm
+from jwt.contrib.algorithms.py_ecdsa import ECAlgorithm
+
+jwt.register_algorithm('RS256', RSAAlgorithm(RSAAlgorithm.SHA256))
+jwt.register_algorithm('ES256', ECAlgorithm(ECAlgorithm.SHA256))
+
 
 log = logging.getLogger(__name__)
 
 MANAGERS = []
 CORS = []
 
-
 def is_superuser(username):
     """
     True if `request` is solicited by a superuser
     """
     return username in MANAGERS
+
 
 @asyncio.coroutine
 def config_db(registry, settings):
@@ -145,14 +156,29 @@ def config_ldap(registry, settings):
 
     registry.settings['db_config'] = db_conn_config
 
+
 @asyncio.coroutine
 def config_mailer(registry, settings):
     registry['mailer'] = mailer_factory_from_settings(settings)
 
 
-def main(global_config, **settings):
-    """ This function returns a Pyramid WSGI application.
+def main(config_file):
+    """ This function returns a AioHTTP WSGI application.
     """
+
+    app = web.Application()
+    cors = aiohttp_cors.setup(app)
+
+    resource_options = aiohttp_cors.ResourceOptions(
+        allow_credentials=True,
+        expose_headers=("X-Custom-Server-Header",),
+        allow_headers=("X-Requested-With", "Content-Type"),
+        max_age=3600,
+    )
+
+    cors_options = {
+        "http://client.example.org": 
+    }
 
     # support logging in python3
     logging.config.fileConfig(
@@ -210,37 +236,46 @@ def main(global_config, **settings):
 
     config.add_settings(debug=settings['debug'] == 'True')
 
-    config.add_route('say_hello', '/')
+    app.router.add_get('/', say_hello)
 
-    config.add_route('get_authorization_code', '/get_authorization_code')
-    config.add_route('get_auth_token', '/get_auth_token')
-    config.add_route('password', '/password')
-    config.add_route('refresh', '/refresh')
-    config.add_route('search_user', '/search_user')
-    config.add_route('valid_token', '/valid_token')
-    config.add_route('get_user', '/get_user')
-    config.add_route('get_users', '/get_users')
-    config.add_route('get_group', '/get_group')
+    route_get_authorization_code = app.router.add_get(
+        '/get_authorization_code', get_authorization_code)
+    app.router.add_get('/get_auth_token', get_auth_token)
+    app.router.add_get('/password', password)
+    app.router.add_get('/refresh', refresh)
+    app.router.add_get('/search_user', search_user)
+    app.router.add_get('/valid_token', valid_token)
+    app.router.add_get('/get_user', get_user)
+    app.router.add_get('/get_users', get_users)
+    app.router.add_get('/get_group', get_group)
 
-    config.add_route('add_user', '/add_user')
-    config.add_route('add_group', '/add_group')
-    config.add_route('add_scope', '/add_scope')
-    config.add_route('get_scopes', '/get_scopes')
-    config.add_route('grant_scope_roles', '/grant_scope_roles')
-    config.add_route('deny_scope_roles', '/deny_scope_roles')
+    app.router.add_get('/ping', ping)
+    app.router.add_get('/add_user', add_user)
+    app.router.add_get('/add_group', add_group)
+    app.router.add_get('/add_scope', add_scope)
+    app.router.add_get('/get_scopes', get_scopes)
+    app.router.add_get('/grant_scope_roles', grant_scope_roles)
+    app.router.add_get('/deny_scope_roles', deny_scope_roles)
 
-    config.scan(endpoints)
-    config.scan(search)
-    config.scan(valid)
-    config.scan(users)
-    config.scan(groups)
-    config.scan(views)
-    return config.make_wsgi_app()
+    app.router.add_static(
+        '/static/',
+        path=str(project_root / 'static'),
+        name='static')
 
+    route = cors.add(
+        route_get_authorization_code, )
 
-def includeme(config):
-    """
-    Callable to allow extending this Pyramid application with
-    `config.include('plone.oauth')`
-    """
-    return main(config, **config.registry.settings)
+    setup_swagger(
+        app,
+        description="""OAuth Server to connecto to plone.server""",
+        title="plone.oauth",
+        api_version="1.0.0",
+        contact="https://github.com/plone/plone.oauth")
+
+    async def close_redis(app):
+        app['db'].close()
+        await app['db'].wait_closed()
+
+    app.on_cleanup.append(close_redis)
+
+    return app

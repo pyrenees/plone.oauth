@@ -1,11 +1,22 @@
-import asyncio
-
-from pyramid.view import view_config
+from aiohttp import web
 
 
-@view_config(route_name='say_hello', renderer='string')
-@asyncio.coroutine
-def say_hello(request):
-    wait_time = float(request.params.get('sleep', 0.1))
-    yield from asyncio.sleep(wait_time)
-    return "Welcome to Plone OAuth Server."
+async def say_hello(request):
+    return web.Response(text="Welcome to Plone OAuth Server.")
+
+
+async def ping(request):
+    """
+    ---
+    description: This end-point allow to test that service is up.
+    tags:
+    - Health check
+    produces:
+    - text/plain
+    responses:
+        "200":
+            description: successful operation. Return "pong" text
+        "405":
+            description: invalid HTTP Method
+    """
+    return web.Response(text="pong")
