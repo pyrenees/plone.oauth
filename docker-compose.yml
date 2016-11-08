@@ -6,7 +6,7 @@ oauth:
   ports:
   - "8080:8080"
   command:
-  - START
+  - SLEEP
   environment:
   - JWTSECRET=secret
   - LDAP_PROFILE=["person","inetOrgPerson"]

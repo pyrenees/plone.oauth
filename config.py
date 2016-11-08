@@ -27,7 +27,7 @@ SMTP_SSL = False
 import os
 import json
 
-REDISHOST = os.environ.get('REDIS_HOST', 'serviceredis')
+REDISHOST = os.environ.get('REDIS_HOST', 'redis')
 REDISPORT = int(os.environ.get('REDIS_PORT', "tcp://172.17.0.2:6379").split(":")[-1])
 JWTSECRET = os.environ.get('JWT_SECRET', 'secret')
 LDAP = os.environ.get('LDAP', 'ldap:10389')

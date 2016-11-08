@@ -107,5 +107,4 @@ def get_domain(request):
 def payload(payload):
     async def async_payload():
         return payload
-
     return async_payload

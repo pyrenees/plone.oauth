@@ -105,6 +105,7 @@ def app(request):
 
     user_manager.addUser('user@example.com', 'user')
 
-    MockRequest = namedtuple('MockRequest', ['app', 'json', 'headers', 'post', 'get'])
-
-    return MockRequest(app, None, {}, None, None)
+    MockRequest = namedtuple('MockRequest', ['app', 'json', 'headers', 'post', 'get', 'transport'])
+    ExtraInfo = namedtuple('ExtraInfo', ['get_extra_info'])
+    extrainfo = ExtraInfo(lambda arg: ('127.0.0.1', '8080') if arg == 'peername' else None)
+    return MockRequest(app, None, {}, None, None, extrainfo)

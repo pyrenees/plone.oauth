@@ -13,24 +13,20 @@ from plone.oauth.valid import valid_token
 from plone.oauth.ldap import LDAPUserManager
 import jwt
 
+
 def test_endpoints(app):
 
     @asyncio.coroutine
     def _test_say_hello_service():
-        import pdb; pdb.set_trace()
-        import ipdb; ipdb.set_trace(context=5)
-
         dummy = app
         # We get the service token
         params = {}
         params['grant_type'] = 'service'
         params['client_id'] = 'plone'
         params['client_secret'] = 'plone'
-        headers = {}
-        headers['User-Agent'] = 'DUMMY'
-        headers['Host'] = '127.0.0.1:8080'
-
+        headers = {'User-Agent': 'DUMMY', 'Host': '127.0.0.1:8080'}
         dummy = dummy._replace(post=payload(params), headers=headers)
+
         view_callable = asyncio.coroutine(get_token)
         info = yield from view_callable(dummy)
         assert info.status == 200
@@ -45,6 +41,7 @@ def test_endpoints(app):
         params['service_token'] = service_token
         params['scopes'] = ['plone']
         dummy = app._replace(post=payload(params))
+
         view_callable = asyncio.coroutine(get_authorization_code)
         info = yield from view_callable(dummy)
         assert info.status == 200
@@ -58,10 +55,9 @@ def test_endpoints(app):
         params['username'] = 'user@example.com'
         params['password'] = 'user'
         params['scopes'] = ['plone']
-        headers = {}
-        headers['User-Agent'] = 'DUMMY'
-        headers['Host'] = '127.0.0.1:8080'
-        dummy = app._replace(post=payload(params))
+        params['client_id'] = 'plone'
+        headers = {'User-Agent': 'DUMMY', 'Host': '127.0.0.1:8080'}
+        dummy = app._replace(post=payload(params), headers=headers)
 
         view_callable = asyncio.coroutine(get_token)
         info = yield from view_callable(dummy)
@@ -70,10 +66,9 @@ def test_endpoints(app):
         info_decoded = jwt.decode(info.body, secret)
         user_token = info_decoded['token']
 
-        params = {}
-        params['code'] = service_token
-        params['token'] = user_token
+        params = {'code': service_token, 'token': user_token}
         dummy = app._replace(post=payload(params))
+
         view_callable = asyncio.coroutine(valid_token)
         info = yield from view_callable(dummy)
         assert info.status == 200
