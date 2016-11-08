@@ -13,8 +13,10 @@ echo "info: COMMAND is < $1 >"
 echo "properties: [port= $PORT, num_workers=$NUM_WORKERS]"
 
 if [ "$1" = "START" ]; then
+    echo "Waiting 30 seconds for Redis and LDAP to be up..."
+    exec sleep 30
     exec /app/bin/gunicorn wsgi:app --bind 0.0.0.0:$PORT --worker-class aiohttp.worker.GunicornUVLoopWebWorker --workers $NUM_WORKERS --timeout 200
-elif [ "$1" = "SLEEP" ]; then
+elif [ "$1" = "DEBUG" ]; then
     exec /bin/sleep 10000
 else
     exec "$@"
