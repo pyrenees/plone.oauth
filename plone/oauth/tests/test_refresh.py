@@ -1,8 +1,8 @@
 import unittest
 import asyncio
 import pytest
+from aiohttp.web_exceptions import HTTPBadRequest
 
-from pyramid.httpexceptions import HTTPBadRequest
 from plone.oauth.tests.conftest import secret
 from plone.oauth.endpoints import refresh_token
 from plone.oauth.endpoints import get_authorization_code, get_token

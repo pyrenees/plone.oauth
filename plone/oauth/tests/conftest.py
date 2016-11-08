@@ -1,11 +1,12 @@
 # content of conftest.py
+from collections import namedtuple
+
 import pytest
+from unittest.mock import NonCallableMagicMock
 from plone.oauth import main
-from pyramid import testing
 import asyncio
 from plone.oauth.endpoints import get_authorization_code, get_token
 import jwt
-
 
 def pytest_addoption(parser):
     parser.addoption("--ldap", action="store",
@@ -92,7 +93,7 @@ def app(request):
         'logging.config': 'development.ini',
         'backend': 'LDAPADMIN'
     }
-    app = main({}, **settings)
+    app = main(settings)
 
     # Init client db
     # db_clients = app.registry.settings['db_clients']
@@ -100,10 +101,10 @@ def app(request):
     # db_clients.set(22, 'holahola')
 
     # Add user
-    user_manager = app.registry.settings['user_manager']
+    user_manager = app['settings']['user_manager']
 
     user_manager.addUser('user@example.com', 'user')
 
-    request = testing.DummyRequest()
-    request.registry = app.registry
-    return request
+    MockRequest = namedtuple('MockRequest', ['app', 'json', 'headers', 'post', 'get'])
+
+    return MockRequest(app, None, {}, None, None)

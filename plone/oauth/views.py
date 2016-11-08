@@ -2,6 +2,7 @@ from aiohttp import web
 
 
 async def say_hello(request):
+    import pdb; pdb.set_trace()
     return web.Response(text="Welcome to Plone OAuth Server.")
 
 

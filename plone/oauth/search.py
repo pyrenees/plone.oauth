@@ -1,25 +1,19 @@
-from pyramid.httpexceptions import HTTPUnauthorized
-from pyramid.httpexceptions import HTTPBadRequest
-from pyramid.httpexceptions import HTTPNotImplemented
-from pyramid.httpexceptions import HTTPFound
 import asyncio
-from pyramid.view import view_config
 import uuid
 import logging
 import jwt
 import ujson
 from datetime import datetime, timedelta
-from pyramid.response import Response
+
+from aiohttp.web import Response
+from aiohttp.web import HTTPBadRequest
 from ldap3 import Server, Connection, SUBTREE, ASYNC, SIMPLE, ANONYMOUS, SASL
 
 
 log = logging.getLogger(__name__)
 
-@view_config(route_name='search_user',
-             request_method='POST',
-             http_cache=0)
-@asyncio.coroutine
-def search_user(request):
+
+async def search_user(request):
     """
     Its superadmin, take care!
 
@@ -51,10 +45,10 @@ def search_user(request):
     if access_token is None:
         raise HTTPBadRequest('code is missing')
 
-    db_tauths = request.registry.settings['db_tauths']
+    db_tauths = request.app['settings']['db_tauths']
 
-    with (yield from db_tauths) as redis:
-        client_id = yield from redis.get(access_token)
+    with (await db_tauths) as redis:
+        client_id = await redis.get(access_token)
 
     if client_id is None:
         raise HTTPBadRequest('Invalid Auth code')
@@ -90,11 +84,11 @@ def search_user(request):
     except ValueError:
         num_x_page = 0
 
-    ttl = request.registry.settings['ttl_search']
-    secret = request.registry.settings['jwtsecret']
+    ttl = request.app['settings']['ttl_search']
+    secret = request.app['settings']['jwtsecret']
 
-    user_manager = request.registry.settings['user_manager']
-    result = yield from user_manager.searchUser(
+    user_manager = request.app['settings']['user_manager']
+    result = await user_manager.searchUser(
         scope,
         criteria,
         exact_match,

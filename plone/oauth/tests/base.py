@@ -1,8 +1,9 @@
 import asyncio
+
+from aiohttp.web_exceptions import HTTPBadRequest
 from ldap3 import Connection
 import jwt
 import logging
-from pyramid.httpexceptions import HTTPBadRequest
 import pytest
 from unittest.mock import MagicMock
 
@@ -20,7 +21,7 @@ class TestUtils:
         Call horus route `caller` and return the response with the decoded body.
         """
         resp = asyncio.get_event_loop().run_until_complete(caller(self.app))
-        secret = self.app.registry.settings['jwtsecret']
+        secret = self.app['settings']['jwtsecret']
         resp.decoded = jwt.decode(resp.body, secret)  # insert decoded body
         return resp
 
@@ -187,7 +188,7 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
         asyncio.get_event_loop().set_debug(True)
         logging.basicConfig(level=logging.DEBUG)
 
-        ldap_server = app.registry.settings['ldap.server']
+        ldap_server = app['settings']['ldap.server']
         conn = Connection(ldap_server, auto_bind=True)
         self.conn = conn
 
@@ -196,7 +197,7 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
         assert len(conn.entries) == 1, 'Refusing test: ldap entry is not empty'
 
         # set app testing
-        settings = app.registry.settings.copy()
+        settings = app['settings'].copy()
         config_dn = 'ou=config,' + self.base_dn
         userFilter = 'mail={username},ou=users,' + self.base_dn
         settings['ldap.base_dn'] = self.base_dn
@@ -204,9 +205,9 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
         settings['ldap.user_filter'] = userFilter
         settings['valid_password'] = 'plone.oauth.password.valid_password'
         settings['password_policy'] = 'plone.oauth.password.password_policy'
-        new_app = main({}, **settings)
+        new_app = main(settings)
         self.app = app
-        self.app.registry = new_app.registry
+        self.app['settings'] = new_app['settings']
 
         # mock redis
         if self.DISABLE_CACHE_REDIS:
@@ -229,7 +230,7 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
             request.addfinalizer(self.set_teardown)
 
         # load data
-        self.ldap = self.app.registry.settings['user_manager']
+        self.ldap = self.app['settings']['user_manager']
         self.create_scope()
         self.create_client()
         self.create_superuser()
@@ -366,7 +367,7 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
 
     def create_group(self):
         loop = asyncio.get_event_loop()
-        ldap = self.app.registry.settings['user_manager']
+        ldap = self.app['settings']['user_manager']
         group_dn = ldap.group_filter(scope=self.scope, group=self.group_id)
         member_dn = ldap.user_filter.format(username=self.user_id)
         member2_dn = ldap.user_filter.format(username=self.superuser_id)

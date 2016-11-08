@@ -1,11 +1,13 @@
 import asyncio
+
+from aiohttp.web_exceptions import HTTPBadRequest
+
 from plone.oauth.endpoints import get_authorization_code, get_token
 from plone.oauth.search import search_user
 from plone.oauth.tests.conftest import secret
 from plone.oauth.users import get_user, add_scope, add_user
 from plone.oauth.users import grant_user_scope_roles, deny_user_scope_roles
 import jwt
-from pyramid.httpexceptions import HTTPBadRequest
 import unittest
 
 SUPERUSER_HARDCODED = 'admin@example.com'

@@ -1,7 +1,7 @@
 import asyncio
-from pyramid.httpexceptions import HTTPBadRequest
-from pyramid.response import Response
-from pyramid.view import view_config
+
+from aiohttp.web import Response
+from aiohttp.web import HTTPBadRequest
 
 from plone.oauth import redis
 from plone.oauth.utils.request import check_manager
@@ -9,11 +9,7 @@ from plone.oauth.utils.request import get_validate_request
 from plone.oauth.utils.response import jwt_response
 
 
-@view_config(route_name='get_group',
-             request_method='POST',
-             http_cache=0)
-@asyncio.coroutine
-def get_group(request):
+async def get_group(request):
     """Protected for manager
 
     Request: POST /get_group
@@ -35,40 +31,36 @@ def get_group(request):
 
     """
     # Request params
-    request_data = yield from get_validate_request(request)
+    request_data = await get_validate_request(request)
     scope = request_data.get('scope')
     username = request_data.get('username')
     group = request.params.get('group', None)
 
     # Security
-    yield from check_manager(username, scope, request)  # !!important
+    await check_manager(username, scope, request)  # !!important
 
     # Compute result
     group_scope = redis.key_group(group, scope)
     try:
         # Search Cache Redis
-        result = yield from redis.get(request, group_scope)
+        result = await redis.get(request, group_scope)
     except KeyError:
         # Search LDAP
-        user_manager = request.registry.settings['user_manager']
-        result = yield from user_manager.getGroupInfo(scope=scope, group=group)
+        user_manager = request.app['settings']['user_manager']
+        result = await user_manager.getGroupInfo(scope=scope, group=group)
         # Cache in redis
-        yield from redis.cache(request, group_scope, result)
+        await redis.cache(request, group_scope, result)
 
     # Response
     if result is None:
         token =  jwt_response(request, 'Group not found')
-        return Response(status_code=400, body=token, content_type='text/plain')
+        return Response(status=400, body=token, content_type='text/plain')
 
     token = jwt_response(request, result)
     return Response(body=token, content_type='text/plain')
 
 
-@view_config(route_name='add_group',
-             request_method='POST',
-             http_cache=0)
-@asyncio.coroutine
-def add_group(request):
+async def add_group(request):
     """Request: POST /add_group
 
         Body :
@@ -85,7 +77,7 @@ def add_group(request):
 
     """
     # Request params
-    request_data = yield from get_validate_request(request)
+    request_data = await get_validate_request(request)
     scope = request_data.get('scope')
     username = request_data.get('username')
     group = request.params.get('group', None)
@@ -94,11 +86,11 @@ def add_group(request):
         raise HTTPBadRequest('group is missing')
 
     # Security
-    yield from check_manager(username, scope, request)  # !!important
+    await check_manager(username, scope, request)  # !!important
 
     # Add LDAP
-    user_manager = request.registry.settings['user_manager']
-    result = yield from user_manager.addGroup(scope, group)
+    user_manager = request.app['settings']['user_manager']
+    result = await user_manager.addGroup(scope, group)
 
     status = 500
     if result == 'success':
@@ -107,5 +99,5 @@ def add_group(request):
         status = 400
 
     token = jwt_response(request, result)
-    return Response(status_code=status, body=token, content_type='text/plain')
+    return Response(status=status, body=token, content_type='text/plain')
 

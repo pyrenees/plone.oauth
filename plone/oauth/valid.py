@@ -1,25 +1,17 @@
-from pyramid.httpexceptions import HTTPUnauthorized
-from pyramid.httpexceptions import HTTPBadRequest
-from pyramid.httpexceptions import HTTPNotImplemented
-from pyramid.httpexceptions import HTTPFound
+from aiohttp.web import HTTPBadRequest, HTTPFound, HTTPUnauthorized, HTTPNotImplemented, Response
 import asyncio
-from pyramid.view import view_config
 import uuid
 import logging
 import jwt
 import ujson
 from datetime import datetime, timedelta
-from pyramid.response import Response
 from ldap3 import Server, Connection, SUBTREE, ASYNC, SIMPLE, ANONYMOUS, SASL
 
 
 log = logging.getLogger(__name__)
 
-@view_config(route_name='valid_token',
-             request_method='POST',
-             http_cache=0)
-@asyncio.coroutine
-def valid_token(request):
+
+async def valid_token(request):
     """
     Validate token!
 
@@ -34,31 +26,31 @@ def valid_token(request):
         }
 
     """
-
-    service_token = request.params.get('code', None)
+    params = await request.post()
+    service_token = params.get('code', None)
     if service_token is None:
         raise HTTPBadRequest('code is missing')
 
-    db_tauths = request.registry.settings['db_tauths']
-    with (yield from db_tauths) as redis:
-        client_id = yield from redis.get(service_token)
+    db_tauths = request.app['settings']['db_tauths']
+    with (await db_tauths) as redis:
+        client_id = await redis.get(service_token)
 
     if client_id is None:
         raise HTTPBadRequest('Invalid Service Token')
 
-    token = request.params.get('token', None)
+    token = params.get('token', None)
     if token is None:
         raise HTTPBadRequest('token is missing')
 
-    db_token = request.registry.settings['db_token']
+    db_token = request.app['settings']['db_token']
 
-    with (yield from db_token) as redis:
-        user = yield from redis.get(token)
+    with (await db_token) as redis:
+        user = await redis.get(token)
 
     if user is None:
         raise HTTPBadRequest('user invalid')
 
-    secret = request.registry.settings['jwtsecret']
+    secret = request.app['settings']['jwtsecret']
 
     # if its ok redirect to get_access_token
     token = jwt.encode(

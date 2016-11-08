@@ -5,7 +5,7 @@ MAINTAINER Ramon Navarro Bosch
 RUN apt-get update -y
 
 # Install Python Setuptools
-RUN apt-get install -y libldap-dev libsasl2-dev locales git-core gcc netcat
+RUN apt-get install -y libldap-dev libsasl2-dev locales git-core gcc netcat build-essential
 
 RUN mkdir /app
 
@@ -27,4 +27,3 @@ EXPOSE  6543
 
 # Configure and Run
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["/app/bin/gunicorn", "--paste", "/app/production.ini", "--timeout", "200"]

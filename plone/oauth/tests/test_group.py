@@ -1,5 +1,5 @@
-from pyramid.httpexceptions import HTTPBadRequest
 import pytest
+from aiohttp.web_exceptions import HTTPBadRequest
 
 from plone.oauth.groups import get_group, add_group
 from plone.oauth.tests.base import BaseHorusTest

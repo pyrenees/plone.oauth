@@ -8,4 +8,8 @@ python config.py
 
 echo "START OAUTH"
 
-exec "$@"
+if [ "$1" = "START" ]; then
+    exec "/app/bin/gunicorn wsgi:app --bind 0.0.0.0:$PORT --worker-class aiohttp.worker.GunicornUVLoopWebWorker --workers $NUM_WORKERS --timeout 200"
+else
+    exec "$@"
+fi

@@ -21,7 +21,7 @@ requires = [
     'aiohttp_cors',
     'aiohttp_jinja2',
     'pycrypto',
-    'ecdcsa',
+    'ecdsa',
     'aioredis',
     'aiohttp_swagger',
     'ujson',

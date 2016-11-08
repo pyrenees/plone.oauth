@@ -19,8 +19,8 @@ def check_manager(username, scope, request):
         return True
 
     # Or check manager in scope
-    ttl = request.registry.settings['ttl_user_info']
-    db_token = request.registry.settings['db_token']
+    ttl = request.app['settings']['ttl_user_info']
+    db_token = request.app['settings']['db_token']
     user_scope = '{0}::{1}'.format(username, scope)
     # Search Redis
     with (yield from db_token) as redis:
@@ -30,7 +30,7 @@ def check_manager(username, scope, request):
         result = ujson.loads(result)
     else:
         # Search LDAP
-        user_manager = request.registry.settings['user_manager']
+        user_manager = request.app['settings']['user_manager']
         result = yield from user_manager.getUserInfo(username, scope)
         # Cache in redis
         with (yield from db_token) as redis:
@@ -66,7 +66,7 @@ def get_validate_request(request):
     if service_token is None:
         raise HTTPBadRequest('service_token is missing')
 
-    db_tauths = request.registry.settings['db_tauths']
+    db_tauths = request.app['settings']['db_tauths']
 
     with (yield from db_tauths) as redis:
         client_id = yield from redis.get(service_token)
@@ -83,7 +83,7 @@ def get_validate_request(request):
         raise HTTPBadRequest('user_token is missing')
 
     # We need the user info so we are going to get it from UserManager
-    db_token = request.registry.settings['db_token']
+    db_token = request.app['settings']['db_token']
     with (yield from db_token) as redis:
         username = yield from redis.get(user_token)
 
@@ -96,3 +96,16 @@ def get_validate_request(request):
         'username': username,
     }
 
+
+def get_domain(request):
+    domain = request.headers['Host']
+    if ':' in domain:
+        domain = domain.split(':', 1)[0]
+    return domain
+
+
+def payload(payload):
+    async def async_payload():
+        return payload
+
+    return async_payload
