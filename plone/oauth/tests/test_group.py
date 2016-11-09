@@ -25,7 +25,7 @@ class TestGroups(BaseHorusTest):
     def test_get_all_scope_groups_superuser(self):
         self.set_app_superuser()
 
-        res = self.call_horus(get_group)
+        res, decoded = self.call_horus(get_group)
         assert res.status_code == 200
         assert isinstance(res.decoded['result'], list)
         assert len(res.decoded['result']) == 3
@@ -36,7 +36,7 @@ class TestGroups(BaseHorusTest):
         self.set_app_superuser()
         self.app.params['group'] = self.group_id
 
-        res = self.call_horus(get_group)
+        res, decoded = self.call_horus(get_group)
         assert res.status_code == 200
         assert res.decoded['result']['name'] == self.group_id
         assert self.user_id in res.decoded['result']['members']
@@ -46,7 +46,7 @@ class TestGroups(BaseHorusTest):
         self.set_app_superuser()
         self.app.params['group'] = 'inexistent'
 
-        res = self.call_horus(get_group)
+        res, decoded = self.call_horus(get_group)
         assert res.status_code == 400
         assert res.decoded['result'] == 'Group not found'
 
@@ -54,9 +54,9 @@ class TestGroups(BaseHorusTest):
         self.set_app_manager()
         self.app.params['group'] = self.group_id
 
-        res = self.call_horus(get_group)
+        res, decoded = self.call_horus(get_group)
         assert res.status_code == 200
-        assert res.decoded['result']['name'] == self.group_id
+        assert decoded['result']['name'] == self.group_id
         assert self.user_id in res.decoded['result']['members']
 
     def test_get_all_scope_groups_user_forbidden(self):
@@ -70,14 +70,14 @@ class TestGroups(BaseHorusTest):
         self.set_app_superuser()
 
         self.app.params['group'] = self.group_id
-        res = self.call_horus(get_group)
+        res, decoded = self.call_horus(get_group)
         assert res.status_code == 200
         assert res.decoded['result']['name'] == self.group_id
         assert self.group3_id in res.decoded['result']['members']
         assert res.decoded['result']['groups'] == {}
 
         self.app.params['group'] = self.group3_id
-        res = self.call_horus(get_group)
+        res, decoded = self.call_horus(get_group)
         assert res.status_code == 200
         assert res.decoded['result']['name'] == self.group3_id
         assert self.user3_id in res.decoded['result']['members']
@@ -89,21 +89,21 @@ class TestGroups(BaseHorusTest):
         self.app.params['group'] = nou_grup
 
         # add group
-        res = self.call_horus(add_group)
+        res, decoded = self.call_horus(add_group)
         assert res.status_code == 200
-        assert res.decoded['result'] == 'success'
+        assert decoded['result'] == 'success'
 
         # check added
-        res = self.call_horus(get_group)
+        res, decoded = self.call_horus(get_group)
         assert res.status_code == 200
-        assert res.decoded['result']['name'] == nou_grup
-        assert len(res.decoded['result']['members']) == 0
-        assert len(res.decoded['result']['groups']) == 0
+        assert decoded['result']['name'] == nou_grup
+        assert len(decoded['result']['members']) == 0
+        assert len(decoded['result']['groups']) == 0
 
         # error if readd group
-        res = self.call_horus(add_group)
+        res, decoded = self.call_horus(add_group)
         assert res.status_code == 400
-        assert res.decoded['result'] == 'entryAlreadyExists'
+        assert decoded['result'] == 'entryAlreadyExists'
 
 
 class TestGroupsWithRedis(TestGroups):

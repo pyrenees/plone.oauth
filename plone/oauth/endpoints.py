@@ -354,18 +354,19 @@ async def set_password(request):
 
     """
     try:
-        json_body = request.json_body
+        json_body = await request.json()
     except:
         json_body = {}
 
     db_tauths = request.app['settings']['db_tauths']
 
-    client_id = request.params.get('client_id', None)
+    params = await request.post()
+    client_id = params.get('client_id', None)
     client_id = json_body.get('client_id', client_id)
     if client_id is None:
         raise HTTPBadRequest('client_id is missing')
 
-    token = request.params.get('token', None)
+    token = params.get('token', None)
     token = json_body.get('token', token)
     if token is None:
         raise HTTPBadRequest('token is missing')
@@ -380,7 +381,7 @@ async def set_password(request):
 
     user = user.decode('utf-8')
 
-    password = request.params.get('password', None)
+    password = params.get('password', None)
     password = json_body.get('password', password)
     if password is None:
         raise HTTPBadRequest('password invalid')
@@ -454,11 +455,7 @@ async def set_password(request):
     response = Response(body=newtoken, content_type='text/plain')
 
     origin = request.headers.get('Origin', None)
-    if origin is None:
-        try:
-            origin = request.headers.__dict__['environ']['HTTP_Origin']
-        except:
-            origin = None
+
     if origin and origin in plone.oauth.CORS:
         response.headers['Access-Control-Allow-Origin'] = origin
     elif origin:
@@ -485,28 +482,28 @@ async def refresh_token(request):
 
     """
     try:
-        json_body = request.json_body
+        json_body = await request.json()
     except:
         json_body = {}
 
-    # access_token = request.params.get('code', None)
+    # access_token = params.get('code', None)
     # access_token = json_body.get('code', access_token)
     # if access_token is None:
     #     raise HTTPBadRequest('code is missing')
 
     db_tauths = request.app['settings']['db_tauths']
-
-    client_id = request.params.get('client_id', None)
+    params = await request.post()
+    client_id = params.get('client_id', None)
     client_id = json_body.get('client_id', client_id)
     if client_id is None:
         raise HTTPBadRequest('client_id is missing')
 
-    token = request.params.get('token', None)
+    token = params.get('token', None)
     token = json_body.get('token', token)
     if token is None:
         raise HTTPBadRequest('token is missing')
 
-    request_user = request.params.get('user', None)
+    request_user = params.get('user', None)
     request_user = json_body.get('user', request_user)
     if request_user is None:
         raise HTTPBadRequest('user is missing')
@@ -598,11 +595,7 @@ async def refresh_token(request):
     response = Response(body=newtoken, content_type='text/plain')
 
     origin = request.headers.get('Origin', None)
-    if origin is None:
-        try:
-            origin = request.headers.__dict__['environ']['HTTP_Origin']
-        except:
-            origin = None
+
     if origin and origin in plone.oauth.CORS:
         response.headers['Access-Control-Allow-Origin'] = origin
     elif origin:

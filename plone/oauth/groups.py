@@ -34,7 +34,8 @@ async def get_group(request):
     request_data = await get_validate_request(request)
     scope = request_data.get('scope')
     username = request_data.get('username')
-    group = request.params.get('group', None)
+    params = await request.post()
+    group = params.get('group', None)
 
     # Security
     await check_manager(username, scope, request)  # !!important
@@ -80,7 +81,8 @@ async def add_group(request):
     request_data = await get_validate_request(request)
     scope = request_data.get('scope')
     username = request_data.get('username')
-    group = request.params.get('group', None)
+    params = await request.post()
+    group = params.get('group', None)
 
     if group is None:
         raise HTTPBadRequest('group is missing')

@@ -548,13 +548,12 @@ class LDAPUserManager(object):
         groups = ldap_conn.get_response(r)[0]
         ldap_conn.unbind()
 
-        @asyncio.coroutine
-        def ldap2json(entry):
+        async def ldap2json(entry):
             group_dn = entry['dn']
             group_name = entry['attributes']['cn'][0]
             members_ldap = entry['attributes']['uniqueMember']
             members_ldap = filter(lambda x: x != group_dn, members_ldap) # filter self
-            info = yield from self.get_info_user_or_group(group_dn, scope)
+            info = await self.get_info_user_or_group(group_dn, scope)
             info.update({
                 'name': group_name,
                 'members': list(map(self.userdn2id, members_ldap)),

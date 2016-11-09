@@ -5,11 +5,12 @@ from ldap3 import Connection
 import jwt
 import logging
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 from plone.oauth import main
 from plone.oauth import redis
 from plone.oauth.endpoints import get_authorization_code, get_token
+from plone.oauth.utils.request import payload
 
 SUPERUSER_HARDCODED = 'admin@example.com'
 
@@ -20,39 +21,40 @@ class TestUtils:
         """
         Call horus route `caller` and return the response with the decoded body.
         """
-        resp = asyncio.get_event_loop().run_until_complete(caller(self.app))
-        secret = self.app['settings']['jwtsecret']
-        resp.decoded = jwt.decode(resp.body, secret)  # insert decoded body
-        return resp
+        dummy = self.app._replace(post=payload(self.params), get=payload(self.params),headers=self.headers)
+        resp = asyncio.get_event_loop().run_until_complete(caller(dummy))
+        secret = self.app.app['settings']['jwtsecret']
+        decoded = jwt.decode(resp.body, secret)  # insert decoded body
+        return resp, decoded
 
     def set_app_superuser(self):
         """
         Set request params for a superuser call
         """
-        self.app.params = {}
-        self.app.params['service_token'] = self.service_token
-        self.app.params['scope'] = self.scope
-        self.app.params['user_token'] = self.superuser_token
+        self.params = {}
+        self.params['service_token'] = self.service_token
+        self.params['scope'] = self.scope
+        self.params['user_token'] = self.superuser_token
 
     def set_app_user(self):
         """
         Set request params for a user call
         """
-        self.app.params = {}
-        self.app.params['service_token'] = self.service_token
-        self.app.params['scope'] = self.scope
-        self.app.params['user_token'] = self.user_token
-        self.app.params['user'] = self.user_id
+        self.params = {}
+        self.params['service_token'] = self.service_token
+        self.params['scope'] = self.scope
+        self.params['user_token'] = self.user_token
+        self.params['user'] = self.user_id
 
     def set_app_manager(self):
         """
         Set request params for a user call
         """
-        self.app.params = {}
-        self.app.params['service_token'] = self.service_token
-        self.app.params['scope'] = self.scope
-        self.app.params['user_token'] = self.manager_token
-        self.app.params['user'] = self.manager_id
+        self.params = {}
+        self.params['service_token'] = self.service_token
+        self.params['scope'] = self.scope
+        self.params['user_token'] = self.manager_token
+        self.params['user'] = self.manager_id
 
 
 class TestUtilsSecurity:
@@ -63,35 +65,35 @@ class TestUtilsSecurity:
         """
         #  No service token
         self.set_app_user()
-        self.app.params['service_token'] = None
+        self.params['service_token'] = None
         with pytest.raises(HTTPBadRequest) as excinfo:
             self.call_horus(view)
         assert str(excinfo.value) == 'service_token is missing'
 
         #  Invalid service token
         self.set_app_user()
-        self.app.params['service_token'] = 'invented'
+        self.params['service_token'] = 'invented'
         with pytest.raises(HTTPBadRequest) as excinfo:
             self.call_horus(view)
         assert str(excinfo.value) == 'Invalid service_token'
 
         #  No scope
         self.set_app_user()
-        self.app.params['scope'] = None
+        self.params['scope'] = None
         with pytest.raises(HTTPBadRequest) as excinfo:
             self.call_horus(view)
         assert str(excinfo.value) == 'scope is missing'
 
         #  No user token
         self.set_app_user()
-        self.app.params['user_token'] = None
+        self.params['user_token'] = None
         with pytest.raises(HTTPBadRequest) as excinfo:
             self.call_horus(view)
         assert str(excinfo.value) == 'user_token is missing'
 
         #  Invalid token
         self.set_app_user()
-        self.app.params['user_token'] = 'invented'
+        self.params['user_token'] = 'invented'
         with pytest.raises(HTTPBadRequest) as excinfo:
             self.call_horus(view)
         assert str(excinfo.value) == 'bad token'
@@ -185,10 +187,11 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
 
     @pytest.fixture(autouse=True)
     def set_init(self, app, request):
+
         asyncio.get_event_loop().set_debug(True)
         logging.basicConfig(level=logging.DEBUG)
 
-        ldap_server = app['settings']['ldap.server']
+        ldap_server = app.app['settings']['ldap.server']
         conn = Connection(ldap_server, auto_bind=True)
         self.conn = conn
 
@@ -197,7 +200,7 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
         assert len(conn.entries) == 1, 'Refusing test: ldap entry is not empty'
 
         # set app testing
-        settings = app['settings'].copy()
+        settings = app.app['settings'].copy()
         config_dn = 'ou=config,' + self.base_dn
         userFilter = 'mail={username},ou=users,' + self.base_dn
         settings['ldap.base_dn'] = self.base_dn
@@ -207,14 +210,23 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
         settings['password_policy'] = 'plone.oauth.password.password_policy'
         new_app = main(settings)
         self.app = app
-        self.app['settings'] = new_app['settings']
+        self.params = {}
+        self.headers = {}
+        self.app.app['settings'] = new_app['settings']
 
         # mock redis
         if self.DISABLE_CACHE_REDIS:
+
+            async def coroutine_wrap(any):
+                if callable(any):
+                    return any()
+                else:
+                    return any
+
             self.original_redis_cache = redis.cache
             self.original_redis_get = redis.get
             self.mock_redis_cache = MagicMock()
-            self.mock_redis_cache.iter.return_value = iter([None])
+            self.mock_redis_cache.return_value = coroutine_wrap(iter([None]))
             self.mock_redis_get = MagicMock(side_effect=KeyError)
             redis.cache = self.mock_redis_cache
             redis.get = self.mock_redis_get
@@ -230,7 +242,8 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
             request.addfinalizer(self.set_teardown)
 
         # load data
-        self.ldap = self.app['settings']['user_manager']
+        self.ldap = self.app.app['settings']['user_manager']
+
         self.create_scope()
         self.create_client()
         self.create_superuser()
@@ -241,13 +254,13 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
 
     @property
     def cauth_code(self):
-        self.app.params['response_type'] = 'code'
-        self.app.params['client_id'] = self.client_id
-        self.app.params['service_token'] = self.service_token
-        self.app.params['scopes'] = [self.scope]
-        r = self.call_horus(get_authorization_code)
-        assert r.status_code == 200
-        return r.decoded['auth_code']
+        self.params['response_type'] = 'code'
+        self.params['client_id'] = self.client_id
+        self.params['service_token'] = self.service_token
+        self.params['scopes'] = [self.scope]
+        r, decoded = self.call_horus(get_authorization_code)
+        assert r.status == 200
+        return decoded['auth_code']
 
     def create_superuser(self):
         self.conn.add(
@@ -262,17 +275,16 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
             )
 
         # We get the working token for the superuser
-        self.app.params['grant_type'] = 'user'
-        self.app.params['code'] = self.cauth_code
-        self.app.params['client_id'] = self.client_id
-        self.app.params['username'] = self.superuser_id
-        self.app.params['password'] = self.superuser_pwd
-        self.app.params['scopes'] = [self.scope]
-        self.app.user_agent = 'DUMMY'
-        self.app.client_addr = '127.0.0.1'
-        r = self.call_horus(get_token)
-        assert r.status_code == 200
-        self.superuser_token = r.decoded['token']
+        self.params['grant_type'] = 'user'
+        self.params['code'] = self.cauth_code
+        self.params['client_id'] = self.client_id
+        self.params['username'] = self.superuser_id
+        self.params['password'] = self.superuser_pwd
+        self.params['scopes'] = [self.scope]
+        self.headers = {'User-Agent': 'DUMMY', 'Host': '127.0.0.1:8080'}
+        r, decoded = self.call_horus(get_token)
+        assert r.status == 200
+        self.superuser_token = decoded['token']
 
     def create_scope(self):
         self.conn.add(
@@ -301,12 +313,12 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
             )
 
         # We get the working token for the client app
-        self.app.params['grant_type'] = 'service'
-        self.app.params['client_id'] = self.client_id
-        self.app.params['client_secret'] = self.client_secret
-        r = self.call_horus(get_token)
-        assert r.status_code == 200
-        self.service_token = r.decoded['service_token']
+        self.params['grant_type'] = 'service'
+        self.params['client_id'] = self.client_id
+        self.params['client_secret'] = self.client_secret
+        r, decoded = self.call_horus(get_token)
+        assert r.status == 200
+        self.service_token = decoded['service_token']
 
     def create_manager(self):
         loop = asyncio.get_event_loop()
@@ -321,53 +333,51 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
             )
 
         # We get the working token for the manager
-        self.app.params['grant_type'] = 'user'
-        self.app.params['code'] = self.cauth_code
-        self.app.params['client_id'] = self.client_id
-        self.app.params['username'] = self.manager_id
-        self.app.params['password'] = self.manager_pwd
-        self.app.params['scopes'] = [self.scope]
-        self.app.user_agent = 'DUMMY'
-        self.app.client_addr = '127.0.0.1'
-        r = self.call_horus(get_token)
-        assert r.status_code == 200
-        self.manager_token = r.decoded['token']
+        self.params['grant_type'] = 'user'
+        self.params['code'] = self.cauth_code
+        self.params['client_id'] = self.client_id
+        self.params['username'] = self.manager_id
+        self.params['password'] = self.manager_pwd
+        self.params['scopes'] = [self.scope]
+        self.headers = {'User-Agent': 'DUMMY', 'Host': '127.0.0.1:8080'}
+        r, decoded = self.call_horus(get_token)
+        assert r.status == 200
+        self.manager_token = decoded['token']
 
     def create_user(self):
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.ldap.addUser(self.user_id, self.user_pwd))
+        result = loop.run_until_complete(self.ldap.addUser(self.user_id, self.user_pwd))
 
         # We get the working token for the user
-        self.app.params['grant_type'] = 'user'
-        self.app.params['code'] = self.cauth_code
-        self.app.params['client_id'] = self.client_id
-        self.app.params['username'] = self.user_id
-        self.app.params['password'] = self.user_pwd
-        self.app.params['scopes'] = [self.scope]
-        self.app.user_agent = 'DUMMY'
-        self.app.client_addr = '127.0.0.1'
-        r = self.call_horus(get_token)
-        assert r.status_code == 200
-        self.user_token = r.decoded['token']
+        self.params['grant_type'] = 'user'
+        self.params['code'] = self.cauth_code
+        self.params['client_id'] = self.client_id
+        self.params['username'] = self.user_id
+        self.params['password'] = self.user_pwd
+        self.params['scopes'] = [self.scope]
+        self.headers = {'User-Agent': 'DUMMY', 'Host': '127.0.0.1:8080'}
+        r, decoded = self.call_horus(get_token)
+        assert r.status == 200
+        self.user_token = decoded['token']
 
         #user3
-        loop.run_until_complete(self.ldap.addUser(self.user3_id, self.user3_pwd))
+        result = loop.run_until_complete(self.ldap.addUser(self.user3_id, self.user3_pwd))
 
         # We get the working token for the user
-        self.app.params['grant_type'] = 'user'
-        self.app.params['code'] = self.cauth_code
-        self.app.params['username'] = self.user3_id
-        self.app.params['password'] = self.user3_pwd
-        self.app.params['scopes'] = [self.scope]
-        self.app.user_agent = 'DUMMY'
-        self.app.client_addr = '127.0.0.1'
-        r = self.call_horus(get_token)
-        assert r.status_code == 200
-        self.user3_token = r.decoded['token']
+        self.params['grant_type'] = 'user'
+        self.params['code'] = self.cauth_code
+        self.params['username'] = self.user3_id
+        self.params['password'] = self.user3_pwd
+        self.params['scopes'] = [self.scope]
+        self.headers = {'User-Agent': 'DUMMY', 'Host': '127.0.0.1:8080'}
+
+        r, decoded = self.call_horus(get_token)
+        assert r.status == 200
+        self.user3_token = decoded['token']
 
     def create_group(self):
         loop = asyncio.get_event_loop()
-        ldap = self.app['settings']['user_manager']
+        ldap = self.app.app['settings']['user_manager']
         group_dn = ldap.group_filter(scope=self.scope, group=self.group_id)
         member_dn = ldap.user_filter.format(username=self.user_id)
         member2_dn = ldap.user_filter.format(username=self.superuser_id)
@@ -390,7 +400,6 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
             self.group_id,
             'reader'
             ))
-
         group2_dn = ldap.group_filter(scope=self.scope, group=self.group2_id)
         self.conn.add(
             group2_dn,
