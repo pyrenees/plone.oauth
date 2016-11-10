@@ -21,7 +21,7 @@ elif [ "$1" = "DEBUG" ]; then
 elif [ "$1" = "TEST" ]; then
     echo "Waiting 30 seconds for Redis and LDAP to be up..."
     sleep 30
-    exec /app/bin/py.test --ldap ldap --ldap-port 10389 --redis redis --redis-port 6379
+    /app/bin/py.test --ldap ldap --ldap-port 10389 --redis redis --redis-port 6379
 else
     exec "$@"
 fi

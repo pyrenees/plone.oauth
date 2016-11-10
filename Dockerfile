@@ -16,11 +16,15 @@ ENV LANG C.UTF-8
 ENV LANGUAGE C.UTF-8
 ENV LC_ALL C.UTF-8
 
+# Clean buildout
+RUN cd /app; rm -rf .installed.cfg .mr.developer.cfg parts/ eggs/ develop-eggs/
+RUN cd /app; find . -name '*.pyc' -or -name '*.egg-info' | xargs rm -rf
+
 # Install buildout
 RUN cd /app; python3.5 bootstrap.py
 
 # Run buildout
-RUN cd /app; ./bin/buildout -vvv
+RUN cd /app; ./bin/buildout -n -vvv
 
 # Expose
 EXPOSE  6543

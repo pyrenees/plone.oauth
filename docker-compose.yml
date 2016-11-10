@@ -4,9 +4,9 @@ oauth:
   - redis:redis
   - ldap:ldap
   ports:
-  - "8080:8080"
+  - "6543:6543"
   command:
-  - DEBUG
+  - TEST
   environment:
   - JWTSECRET=secret
   - LDAP_PROFILE=["person","inetOrgPerson"]
@@ -14,7 +14,7 @@ oauth:
   - LDAP_ROOT_DN=uid=admin,ou=system
   - LDAP_ROOT_PW=secret
   - LDAP_BASE_DN=dc=plone,dc=com
-  - PORT=8080
+  - PORT=6543
   - NUM_WORKERS=2
 redis:
   image: redis
