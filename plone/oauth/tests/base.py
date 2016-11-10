@@ -160,7 +160,7 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
         self.conn.search(entry, '(objectclass=top)', 'LEVEL')
 
         for subentry in self.conn.entries:
-            self._recursively_delete(subentry.entry_dn)
+            self._recursively_delete(subentry.entry_get_dn())
 
         self.conn.delete(entry)
 

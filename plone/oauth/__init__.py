@@ -47,7 +47,6 @@ def is_superuser(username):
 
 @asyncio.coroutine
 def config_db(registry, settings):
-
     # DB 0 cauth
     # DB 1 tauth
     # DB 2 token

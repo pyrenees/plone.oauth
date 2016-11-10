@@ -6,7 +6,7 @@ oauth:
   ports:
   - "8080:8080"
   command:
-  - TEST
+  - DEBUG
   environment:
   - JWTSECRET=secret
   - LDAP_PROFILE=["person","inetOrgPerson"]
@@ -21,7 +21,7 @@ redis:
   volumes:
   - ./db:/data
   expose:
-  - "6379"  
+  - "6379"
 ldap:
   image: greggigon/apacheds
   volumes:

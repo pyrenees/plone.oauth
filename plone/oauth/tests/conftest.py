@@ -77,7 +77,7 @@ def app(request):
         'debug': True,
         'manager': 'admin@example.com',
         'redis.host': request.config.getoption("--redis"),
-        'redis.port': request.config.getoption("--redis-port"),
+        'redis.port': int(request.config.getoption("--redis-port")),
         'mail.host': 'localhost',
         'mail.port': 587,
         'mail.username': 'username',
