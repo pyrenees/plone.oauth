@@ -225,7 +225,7 @@ def test_endpoints(app):
         assert info.status == 200
 
         #search user empty criteria without exact_match
-        mock.params['criteria'] = '{"fullname": ""}'
+        mock.params['criteria'] = '{"displayName": ""}'
         mock.params['exact_match'] = None
         mock.app = mock.app._replace(post=payload(mock.params), headers=mock.headers)
         view_callable = asyncio.coroutine(search_user)

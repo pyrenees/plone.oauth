@@ -263,11 +263,14 @@ def main(config):
         api_version="1.0.0",
         contact="https://github.com/plone/plone.oauth")
 
-    #async def close_redis(app):
-    #    app['db'].close()
-    #    await app['db'].wait_closed()
+    async def close_redis(app):
+        log.info('Closing REDIS pools connections ...')
+        await registry['settings']['db_cauths'].wait_closed()
+        await registry['settings']['db_tauths'].wait_closed()
+        await registry['settings']['db_token'].wait_closed()
+        log.info('Closed REDIS pools connections.')
 
-    #app.on_cleanup.append(close_redis)
+    app.on_cleanup.append(close_redis)
 
     app['settings'] = registry['settings']
     return app
