@@ -61,12 +61,6 @@ secret = 'secret'
 @pytest.fixture(scope="module")
 def app(request):
     settings = {
-        'pyramid.reload_templates': False,
-        'pyramid.debug_authorization': False,
-        'pyramid.debug_notfound': False,
-        'pyramid.debug_routematch': False,
-        'pyramid.includes': 'aiopyramid',
-        'pyramid.default_locale_name': 'en',
         'jwtsecret': secret,
         'ldap.base_dn': 'dc=plone,dc=com',
         'ldap.user_filter': 'mail={username},ou=users,dc=plone,dc=com',
@@ -93,6 +87,7 @@ def app(request):
         'logging.config': 'development.ini',
         'backend': 'LDAPADMIN'
     }
+
     app = main(settings)
 
     # Init client db
@@ -102,7 +97,6 @@ def app(request):
 
     # Add user
     user_manager = app['settings']['user_manager']
-
     user_manager.addUser('user@example.com', 'user')
 
     MockRequest = namedtuple('MockRequest', ['app', 'json', 'headers', 'post', 'get', 'transport'])

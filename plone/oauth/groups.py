@@ -85,7 +85,7 @@ async def add_group(request):
     group = params.get('group', None)
 
     if group is None:
-        raise HTTPBadRequest('group is missing')
+        raise HTTPBadRequest(reason='group is missing')
 
     # Security
     await check_manager(username, scope, request)  # !!important
@@ -102,4 +102,3 @@ async def add_group(request):
 
     token = jwt_response(request, result)
     return Response(status=status, body=token, content_type='text/plain')
-

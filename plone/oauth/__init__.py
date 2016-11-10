@@ -69,7 +69,7 @@ def config_db(registry, settings):
         maxsize=10)
 
     # User tokens
-    # TOKEN : 
+    # TOKEN :
     db_pool_token = yield from aioredis.create_pool(
         (settings['redis.host'], settings['redis.port']),
         db=2,
@@ -238,7 +238,7 @@ def main(config):
 
     cors.add(app.router.add_get('/', say_hello))
     cors.add(app.router.add_post('/get_authorization_code', endpoints.get_authorization_code))
-    cors.add(app.router.add_get('/get_auth_token', endpoints.get_token))
+    cors.add(app.router.add_post('/get_auth_token', endpoints.get_token))
     cors.add(app.router.add_route('OPTION', '/get_auth_token', endpoints.get_auth_token_options))
     cors.add(app.router.add_post('/password', endpoints.set_password))
     cors.add(app.router.add_route('OPTION', '/password', endpoints.set_password_options))
@@ -247,7 +247,7 @@ def main(config):
     cors.add(app.router.add_post('/search_user', search.search_user))
     cors.add(app.router.add_post('/valid_token', valid.valid_token))
     cors.add(app.router.add_post('/get_user', users.get_user))
-    cors.add(app.router.add_get('/get_users', users.get_users))
+    cors.add(app.router.add_post('/get_users', users.get_users))
     cors.add(app.router.add_post('/get_group', groups.get_group))
     cors.add(app.router.add_post('/add_user', users.add_user))
     cors.add(app.router.add_post('/add_group', groups.add_group))
@@ -272,4 +272,3 @@ def main(config):
 
     app['settings'] = registry['settings']
     return app
-

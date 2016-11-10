@@ -160,7 +160,7 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
         self.conn.search(entry, '(objectclass=top)', 'LEVEL')
 
         for subentry in self.conn.entries:
-            self._recursively_delete(subentry.entry_get_dn())
+            self._recursively_delete(subentry.entry_dn)
 
         self.conn.delete(entry)
 
@@ -217,17 +217,15 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
         # mock redis
         if self.DISABLE_CACHE_REDIS:
 
-            async def coroutine_wrap(any):
-                if callable(any):
-                    return any()
-                else:
-                    return any
+            class AsyncMock(MagicMock):
+                async def __call__(self, *args, **kwargs):
+                    return super(AsyncMock, self).__call__(*args, **kwargs)
 
             self.original_redis_cache = redis.cache
             self.original_redis_get = redis.get
-            self.mock_redis_cache = MagicMock()
-            self.mock_redis_cache.return_value = coroutine_wrap(iter([None]))
-            self.mock_redis_get = MagicMock(side_effect=KeyError)
+            self.mock_redis_cache = AsyncMock()
+            self.mock_redis_cache.return_value = iter([None])
+            self.mock_redis_get = AsyncMock(side_effect=KeyError)
             redis.cache = self.mock_redis_cache
             redis.get = self.mock_redis_get
 
@@ -322,8 +320,8 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
 
     def create_manager(self):
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.ldap.addUser(
-            self.manager_id, self.manager_pwd))
+        self.ldap.addUser(
+            self.manager_id, self.manager_pwd)
         loop.run_until_complete(
             self.ldap.addScopeRoleUser(
                 self.scope,
@@ -346,7 +344,7 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
 
     def create_user(self):
         loop = asyncio.get_event_loop()
-        result = loop.run_until_complete(self.ldap.addUser(self.user_id, self.user_pwd))
+        result = self.ldap.addUser(self.user_id, self.user_pwd)
 
         # We get the working token for the user
         self.params['grant_type'] = 'user'
@@ -361,7 +359,7 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
         self.user_token = decoded['token']
 
         #user3
-        result = loop.run_until_complete(self.ldap.addUser(self.user3_id, self.user3_pwd))
+        result = self.ldap.addUser(self.user3_id, self.user3_pwd)
 
         # We get the working token for the user
         self.params['grant_type'] = 'user'

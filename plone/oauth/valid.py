@@ -29,18 +29,18 @@ async def valid_token(request):
     params = await request.post()
     service_token = params.get('code', None)
     if service_token is None:
-        raise HTTPBadRequest('code is missing')
+        raise HTTPBadRequest(reason='code is missing')
 
     db_tauths = request.app['settings']['db_tauths']
     with (await db_tauths) as redis:
         client_id = await redis.get(service_token)
 
     if client_id is None:
-        raise HTTPBadRequest('Invalid Service Token')
+        raise HTTPBadRequest(reason='Invalid Service Token')
 
     token = params.get('token', None)
     if token is None:
-        raise HTTPBadRequest('token is missing')
+        raise HTTPBadRequest(reason='token is missing')
 
     db_token = request.app['settings']['db_token']
 
@@ -48,7 +48,7 @@ async def valid_token(request):
         user = await redis.get(token)
 
     if user is None:
-        raise HTTPBadRequest('user invalid')
+        raise HTTPBadRequest(reason='user invalid')
 
     secret = request.app['settings']['jwtsecret']
 

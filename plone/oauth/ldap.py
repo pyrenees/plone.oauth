@@ -161,7 +161,7 @@ class LDAPUserManager(object):
         self.unbind()
         return result
 
-    async def addUser(self, username, password):
+    def addUser(self, username, password):
         """
         !!!Admin add: must be protected when calling
         """
@@ -271,11 +271,11 @@ class LDAPUserManager(object):
 
     async def addScopeRoleUser(self, scope, username, role):
         user_dn = self.user_filter.format(username=username)
-        return self.addScopeRole(scope, user_dn, role)
+        return await self.addScopeRole(scope, user_dn, role)
 
     async def addScopeRoleGroup(self, scope, groupname, role):
         group_dn = self.group_filter(scope, groupname)
-        return self.addScopeRole(scope, group_dn, role)
+        return await self.addScopeRole(scope, group_dn, role)
 
     async def delScopeRole(self, scope, username, role):
         """
@@ -401,7 +401,7 @@ class LDAPUserManager(object):
             attributes=USER_ATTRIBUTES)
         if r:
             names = ldap_conn.get_response(r)[0]
-            res = [res['attributes']['cn'][0] for res in names]           
+            res = [res['attributes']['cn'][0] for res in names]
         else:
             res = []
         ldap_conn.unbind()

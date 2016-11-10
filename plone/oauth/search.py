@@ -41,9 +41,10 @@ async def search_user(request):
         }
 
     """
-    access_token = request.params.get('code', None)
+    params = await request.post()
+    access_token = params.get('code', None)
     if access_token is None:
-        raise HTTPBadRequest('code is missing')
+        raise HTTPBadRequest(reason='code is missing')
 
     db_tauths = request.app['settings']['db_tauths']
 
@@ -51,34 +52,34 @@ async def search_user(request):
         client_id = await redis.get(access_token)
 
     if client_id is None:
-        raise HTTPBadRequest('Invalid Auth code')
+        raise HTTPBadRequest(reason='Invalid Auth code')
 
-    scope = request.params.get('scope', None)
+    scope = params.get('scope', None)
     if scope is None:
-        raise HTTPBadRequest('scope is missing')
+        raise HTTPBadRequest(reason='scope is missing')
 
-    criteria = request.params.get('criteria', None)
+    criteria = params.get('criteria', None)
     if criteria is None:
-        raise HTTPBadRequest('criteria is missing')
+        raise HTTPBadRequest(reason='criteria is missing')
     else:
         criteria = ujson.loads(criteria)
 
-    exact_match = request.params.get('exact_match', None)
+    exact_match = params.get('exact_match', None)
     if exact_match is None:
         exact_match = False
     else:
         exact_match = True
 
 
-    attrs = ujson.loads(request.params.get('attrs', '[]'))
+    attrs = ujson.loads(params.get('attrs', '[]'))
 
-    page = request.params.get('page', '0')
+    page = params.get('page', '0')
     try:
         page = int(page)
     except ValueError:
         page = 0
 
-    num_x_page = request.params.get('num_x_page', '20')
+    num_x_page = params.get('num_x_page', '20')
     try:
         num_x_page = int(num_x_page)
     except ValueError:

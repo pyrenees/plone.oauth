@@ -43,19 +43,19 @@ async def get_authorization_code(request):
     response_type = params.get('response_type', None)
     response_type = json_body.get('response_type', response_type)
     if response_type is None:
-        raise HTTPBadRequest('response_type is missing')
+        raise HTTPBadRequest(reason='response_type is missing')
 
     if response_type not in ['code', 'url']:
-        raise HTTPBadRequest('response_type needs to be code or url')
+        raise HTTPBadRequest(reason='response_type needs to be code or url')
 
     client_id = params.get('client_id', None)
     client_id = json_body.get('client_id', client_id)
     if client_id is None:
-        raise HTTPBadRequest('client_id is missing')
+        raise HTTPBadRequest(reason='client_id is missing')
 
     scopes = params.get('scopes', None)
     if scopes is None:
-        raise HTTPBadRequest('scopes is missing')
+        raise HTTPBadRequest(reason='scopes is missing')
 
     if not isinstance(scopes, list):
         scopes = scopes.split(',')
@@ -64,7 +64,7 @@ async def get_authorization_code(request):
     service_token = params.get('service_token', None)
     service_token = json_body.get('service_token', service_token)
     if service_token is None:
-        raise HTTPBadRequest('service_token is missing')
+        raise HTTPBadRequest(reason='service_token is missing')
 
     db = request.app['settings']['db_tauths']
 
@@ -73,7 +73,7 @@ async def get_authorization_code(request):
         service_client_id = await redis.get(service_token)
 
     if service_client_id is None:
-        raise HTTPBadRequest('Invalid Service Token')
+        raise HTTPBadRequest(reason='Invalid Service Token')
 
     # We need to check if the client is ok for the scope
     # Table of valid clients and scopes
@@ -121,7 +121,7 @@ async def get_authorization_code(request):
     if response_type == 'url':
         redirect_uri = params.get('redirect_uri', None)
         if redirect_uri is None:
-            raise HTTPBadRequest('redirect_uri is missing')
+            raise HTTPBadRequest(reason='redirect_uri is missing')
 
         response = HTTPFound(location=redirect_uri + '?code=' + token)
     else:
@@ -142,7 +142,7 @@ def preflight(request):
         try:
             origin = request.headers.__dict__['environ']['HTTP_Origin']
         except:
-            raise HTTPBadRequest('Origin header is missing')
+            raise HTTPBadRequest(reason='Origin header is missing')
     if origin in plone.oauth.CORS:
         response = Response()
         response.headers['Access-Control-Allow-Headers'] = 'origin, content-type, accept'
@@ -150,7 +150,7 @@ def preflight(request):
         response.headers['Access-Control-Allow-Origin'] = origin
         return response
     else:
-        raise HTTPBadRequest('Not valid origin : ' + origin)
+        raise HTTPBadRequest(reason='Not valid origin : ' + origin)
 
 async def get_auth_token_options(request):
     return preflight(request)
@@ -185,16 +185,16 @@ async  def get_token(request):
     grant_type = json_body.get('grant_type', grant_type)
 
     if grant_type is None:
-        raise HTTPBadRequest('grant_type is missing')
+        raise HTTPBadRequest(reason='grant_type is missing')
 
     if grant_type not in ['user', 'service']:
-        raise HTTPBadRequest('grant_type not valid')
+        raise HTTPBadRequest(reason='grant_type not valid')
 
     client_id = params.get('client_id', None)
     client_id = json_body.get('client_id', client_id)
 
     if client_id is None:
-        raise HTTPBadRequest('client_id is missing')
+        raise HTTPBadRequest(reason='client_id is missing')
 
     secret = request.app['settings']['jwtsecret']
     debug = request.app['settings']['debug']
@@ -204,12 +204,12 @@ async  def get_token(request):
         client_secret = params.get('client_secret', None)
         client_secret = json_body.get('client_secret', client_secret)
         if client_secret is None:
-            raise HTTPBadRequest('client_secret is missing')
+            raise HTTPBadRequest(reason='client_secret is missing')
 
         # Get DB
         db_config = request.app['settings']['db_config']
         if not db_config.clientAuth(client_id, client_secret):
-            raise HTTPBadRequest('BAD client secret')
+            raise HTTPBadRequest(reason='BAD client secret')
 
         # If its ok create a service token
         token = uuid.uuid4().hex
@@ -244,12 +244,12 @@ async  def get_token(request):
         scopes = json_body.get('scopes', scopes)
 
         if scopes is None:
-            raise HTTPBadRequest('scopes is missing')
+            raise HTTPBadRequest(reason='scopes is missing')
 
         code = params.get('code', None)
         code = json_body.get('code', code)
         if code is None:
-            raise HTTPBadRequest('code is missing')
+            raise HTTPBadRequest(reason='code is missing')
 
         db_cauths = request.app['settings']['db_cauths']
 
@@ -258,30 +258,30 @@ async  def get_token(request):
                 db_client_id = await redis.get(code + '::' + scope)
 
                 if db_client_id is None:
-                    raise HTTPBadRequest('Invalid Auth code')
+                    raise HTTPBadRequest(reason='Invalid Auth code')
 
                 if db_client_id != bytes(client_id, encoding='utf-8'):
-                    raise HTTPBadRequest('Invalid Client ID')
+                    raise HTTPBadRequest(reason='Invalid Client ID')
                 await redis.delete(code + '::' + scope)
 
         username = params.get('username', None)
         username = json_body.get('username', username)
 
         if username is None:
-            raise HTTPBadRequest('username is missing')
+            raise HTTPBadRequest(reason='username is missing')
 
         password = params.get('password', None)
         password = json_body.get('password', password)
 
         if password is None:
-            raise HTTPBadRequest('Password is missing')
+            raise HTTPBadRequest(reason='Password is missing')
 
         # Validate user
         user_manager = request.app['settings']['user_manager']
         result = await user_manager.loginUser(username, password)
 
         if not result:
-            raise HTTPUnauthorized('Password/Username is not valid')
+            raise HTTPUnauthorized(reason='Password/Username is not valid')
 
         if type(result['mail']) is list and len(result['mail']):
             login = result['mail'][0]
@@ -364,12 +364,12 @@ async def set_password(request):
     client_id = params.get('client_id', None)
     client_id = json_body.get('client_id', client_id)
     if client_id is None:
-        raise HTTPBadRequest('client_id is missing')
+        raise HTTPBadRequest(reason='client_id is missing')
 
     token = params.get('token', None)
     token = json_body.get('token', token)
     if token is None:
-        raise HTTPBadRequest('token is missing')
+        raise HTTPBadRequest(reason='token is missing')
 
     db_token = request.app['settings']['db_token']
 
@@ -377,20 +377,20 @@ async def set_password(request):
         user = await redis.get(token)
 
     if user is None:
-        raise HTTPBadRequest('user invalid')
+        raise HTTPBadRequest(reason='user invalid')
 
     user = user.decode('utf-8')
 
     password = params.get('password', None)
     password = json_body.get('password', password)
     if password is None:
-        raise HTTPBadRequest('password invalid')
+        raise HTTPBadRequest(reason='password invalid')
 
     valid_password = request.app['settings']['valid_password']
     password_policy = request.app['settings']['password_policy']
     if not valid_password(password):
         password_policy = password_policy()
-        raise HTTPBadRequest('Password not valid: %s', password_policy)
+        raise HTTPBadRequest(reason='Password not valid: {}'.format(password_policy))
 
     config = request.app['settings']['db_config']
 
@@ -408,10 +408,10 @@ async def set_password(request):
     try:
         result = await user_manager.setPassword(user, password)
     except:
-        raise HTTPBadRequest('Password not valid: %s', password_policy())
+        raise HTTPBadRequest(reason='Password not valid: {}'.format(password_policy()))
 
     if not result:
-        raise HTTPBadRequest('Failed policy LDAP')
+        raise HTTPBadRequest(reason='Failed policy LDAP')
 
     # Generate token
     newtoken = uuid.uuid4().hex
@@ -489,24 +489,24 @@ async def refresh_token(request):
     # access_token = params.get('code', None)
     # access_token = json_body.get('code', access_token)
     # if access_token is None:
-    #     raise HTTPBadRequest('code is missing')
+    #     raise HTTPBadRequest(reason='code is missing')
 
     db_tauths = request.app['settings']['db_tauths']
     params = await request.post()
     client_id = params.get('client_id', None)
     client_id = json_body.get('client_id', client_id)
     if client_id is None:
-        raise HTTPBadRequest('client_id is missing')
+        raise HTTPBadRequest(reason='client_id is missing')
 
     token = params.get('token', None)
     token = json_body.get('token', token)
     if token is None:
-        raise HTTPBadRequest('token is missing')
+        raise HTTPBadRequest(reason='token is missing')
 
     request_user = params.get('user', None)
     request_user = json_body.get('user', request_user)
     if request_user is None:
-        raise HTTPBadRequest('user is missing')
+        raise HTTPBadRequest(reason='user is missing')
 
     # with (yield from db_tauths) as redis:
     #     db_client_id = yield from redis.get(access_token)
@@ -514,18 +514,18 @@ async def refresh_token(request):
     # try:
     #     post_splited = db_client_id.split(b'::')
     # except:
-    #     raise HTTPBadRequest('Bad scope stored for the client')
+    #     raise HTTPBadRequest(reason='Bad scope stored for the client')
     # try:
     #     real_db_client_id = post_splited[0].decode()
     # except:
-    #     raise HTTPBadRequest('Bad client_id stored for the client')
+    #     raise HTTPBadRequest(reason='Bad client_id stored for the client')
     # try:
     #     int_client_id = client_id
     # except:
-    #     raise HTTPBadRequest('bad client_id')
+    #     raise HTTPBadRequest(reason='bad client_id')
 
     # if real_db_client_id is None or real_db_client_id != int_client_id:
-    #     raise HTTPBadRequest('Invalid Auth code')
+    #     raise HTTPBadRequest(reason='Invalid Auth code')
 
     db_token = request.app['settings']['db_token']
 
@@ -533,12 +533,12 @@ async def refresh_token(request):
         user = await redis.get(token)
 
     if user is None:
-        raise HTTPBadRequest('user invalid')
+        raise HTTPBadRequest(reason='user invalid')
 
     user = user.decode('utf-8')
 
     if user != request_user:
-        raise HTTPBadRequest('valid user mismatch')
+        raise HTTPBadRequest(reason='valid user mismatch')
 
     config = request.app['settings']['db_config']
 

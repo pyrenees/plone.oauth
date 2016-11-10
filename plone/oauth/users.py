@@ -63,11 +63,12 @@ async def get_user(request):
     scope = request_data.get('scope')
     username = request_data.get('username')
 
-    user = request.params.get('user', None)
+    params = await request.post()
+    user = params.get('user', None)
     if user is None:
-        raise HTTPBadRequest('user is missing')
+        raise HTTPBadRequest(reason='user is missing')
     if not validate_email(user):
-        raise HTTPBadRequest("user isn't a valid email address")
+        raise HTTPBadRequest(reason="user isn't a valid email address")
 
     if username != user:
         await check_manager(username, scope, request)  # !!important
@@ -147,19 +148,20 @@ async def add_user(request):
 
     check_superuser(username)  # !!important
 
-    user = request.params.get('user', None)
+    params = await request.post()
+    user = params.get('user', None)
     if user is None:
-        raise HTTPBadRequest('user is missing')
+        raise HTTPBadRequest(reason='user is missing')
     if not validate_email(user):
-        raise HTTPBadRequest("user isn't a valid email address")
+        raise HTTPBadRequest(reason="user isn't a valid email address")
 
-    password = request.params.get('password', None)
+    password = params.get('password', None)
     if password is None:
-        raise HTTPBadRequest('password is missing')
+        raise HTTPBadRequest(reason='password is missing')
 
     # Add LDAP
     user_manager = request.app['settings']['user_manager']
-    result = await user_manager.addUser(user, password)
+    result = user_manager.addUser(user, password)
 
     status = 500
     if result == 'success':
@@ -194,11 +196,12 @@ async def add_scope(request):
     check_superuser(username)  # !!important
 
     # Obtenim el correu del l'administrador(Manager) del site
-    admin_user = request.params.get('admin_user', None)
+    params = await request.post()
+    admin_user = params.get('admin_user', None)
     if admin_user is None:
-        raise HTTPBadRequest('admin_user is missing')
+        raise HTTPBadRequest(reason='admin_user is missing')
     if not validate_email(admin_user):
-        raise HTTPBadRequest("user isn't a valid email address")
+        raise HTTPBadRequest(reason="user isn't a valid email address")
 
     # Add LDAP Scope
     user_manager = request.app['settings']['user_manager']
@@ -211,11 +214,11 @@ async def add_scope(request):
         token = jwt_response(request, result)
         return Response(status=status, body=token, content_type='text/plain')
     else:
-        raise HTTPBadRequest('scope creation')
+        raise HTTPBadRequest(reason='scope creation')
 
     # Add user (only if user aren't exists)
     new_password = generate_password()
-    result_user = await user_manager.addUser(admin_user, new_password)
+    result_user = user_manager.addUser(admin_user, new_password)
 
     if result_user == 'success':
         pass
@@ -232,7 +235,7 @@ async def add_scope(request):
         #     body=text_message)
         # mailer.send_immediately(message, fail_silently=False)
     elif result_user != 'entryAlreadyExists':
-        raise HTTPBadRequest('user creation')
+        raise HTTPBadRequest(reason='user creation')
 
     # Assign the manager role to the user
     result_role = await user_manager.addScopeRoleUser(
@@ -241,7 +244,7 @@ async def add_scope(request):
         'manager')
 
     if result_role != 'success':
-        raise HTTPBadRequest('role assignation')
+        raise HTTPBadRequest(reason='role assignation')
 
     token = jwt_response(request, result)
     return Response(status=status, body=token, content_type='text/plain')
@@ -261,9 +264,10 @@ async def get_scopes(request):
         entryAlreadyExists
 
     """
-    service_token = request.params.get('service_token', None)
+    params = await request.get()
+    service_token = params.get('service_token', None)
     if service_token is None:
-        raise HTTPBadRequest('service_token is missing')
+        raise HTTPBadRequest(reason='service_token is missing')
 
     db_tauths = request.app['settings']['db_tauths']
 
@@ -271,11 +275,11 @@ async def get_scopes(request):
         client_id = await redis.get(service_token)
 
     if client_id is None:
-        raise HTTPBadRequest('Invalid service_token')
+        raise HTTPBadRequest(reason='Invalid service_token')
 
-    user_token = request.params.get('user_token', None)
+    user_token = params.get('user_token', None)
     if user_token is None:
-        raise HTTPBadRequest('user_token is missing')
+        raise HTTPBadRequest(reason='user_token is missing')
 
     # We need the user info so we are going to get it from UserManager
     db_token = request.app['settings']['db_token']
@@ -283,7 +287,7 @@ async def get_scopes(request):
         username = await redis.get(user_token)
 
     if username is None:
-        raise HTTPBadRequest('Invalid user_token')
+        raise HTTPBadRequest(reason='Invalid user_token')
     username = username.decode("utf-8")
 
     # La petició getUserScopes filtra els scopes segons l'username
@@ -320,15 +324,16 @@ async def grant_user_scope_roles(request):
     await check_manager(username, scope, request)  # !!important
 
     # Obtenim les dades del nou usuari que volem crear
-    user = request.params.get('user', None)
+    params = await request.post()
+    user = params.get('user', None)
     if user is None:
-        raise HTTPBadRequest('user is missing')
+        raise HTTPBadRequest(reason='user is missing')
     if not validate_email(user):
-        raise HTTPBadRequest("user isn't a valid email address")
+        raise HTTPBadRequest(reason="user isn't a valid email address")
 
-    roles = request.params.get('roles', None)
+    roles = params.get('roles', None)
     if roles is None:
-        raise HTTPBadRequest('roles is missing')
+        raise HTTPBadRequest(reason='roles is missing')
     if not isinstance(roles, list):
         roles = ast.literal_eval(roles)
 
@@ -337,7 +342,7 @@ async def grant_user_scope_roles(request):
     # Creem l'usuari al LDAP
     # Add user (only if user aren't exists)
     new_password = generate_password()
-    result_user = await user_manager.addUser(user, new_password)
+    result_user = user_manager.addUser(user, new_password)
 
     logging.info('Added user %s - %s' % (user, result_user))
     if result_user == 'success':
@@ -357,7 +362,7 @@ async def grant_user_scope_roles(request):
         #     body=text_message)
         # mailer.send_immediately(message, fail_silently=False)
     elif result_user != 'entryAlreadyExists':
-        raise HTTPBadRequest('user creation')
+        raise HTTPBadRequest(reason='user creation')
 
     # Assign the role to the user
     for role in roles:
@@ -374,7 +379,7 @@ async def grant_user_scope_roles(request):
         elif result_role == 'attributeOrValueExists':
             status = 400
         else:
-            raise HTTPBadRequest('role assignation')
+            raise HTTPBadRequest(reason='role assignation')
 
     token = jwt_response(request, result_role)
     return Response(status=status, body=token, content_type='text/plain')
@@ -406,15 +411,16 @@ async def deny_user_scope_roles(request):
     await check_manager(username, scope, request)  # !!important
 
     # Obtenim les dades del nou usuari que volem eliminar els rols
-    user = request.params.get('user', None)
+    params = await request.post()
+    user = params.get('user', None)
     if user is None:
-        raise HTTPBadRequest('user is missing')
+        raise HTTPBadRequest(reason='user is missing')
     if not validate_email(user):
-        raise HTTPBadRequest("user isn't a valid email address")
+        raise HTTPBadRequest(reason="user isn't a valid email address")
 
-    roles = request.params.get('roles', None)
+    roles = params.get('roles', None)
     if roles is None:
-        raise HTTPBadRequest('roles is missing')
+        raise HTTPBadRequest(reason='roles is missing')
     if not isinstance(roles, list):
         roles = ast.literal_eval(roles)
 
@@ -435,7 +441,7 @@ async def deny_user_scope_roles(request):
         elif result_role == 'noSuchAttribute':
             status = 400
         else:
-            raise HTTPBadRequest('role deny')
+            raise HTTPBadRequest(reason='role deny')
 
     token = jwt_response(request, result_role)
     return Response(status=status, body=token, content_type='text/plain')

@@ -17,9 +17,9 @@ def test_endpoints(app):
         params = {}
         params['grant_type'] = 'service'
         params['client_id'] = 'plone'
-        params['client_secret'] = 'plone'        
+        params['client_secret'] = 'plone'
         headers = {'User-Agent': 'DUMMY', 'Host': '127.0.0.1:8080'}
-        dummy = app._replace(post=payload(params), headers=headers)        
+        dummy = app._replace(post=payload(params), headers=headers)
         view_callable = asyncio.coroutine(get_token)
         info = await view_callable(dummy)
         assert info.status == 200
@@ -32,7 +32,7 @@ def test_endpoints(app):
         params['client_id'] = 'plone'
         params['service_token'] = service_token
         params['scopes'] = ['plone']
-        dummy = dummy._replace(post=payload(params))        
+        dummy = dummy._replace(post=payload(params))
         view_callable = asyncio.coroutine(get_authorization_code)
         info = await view_callable(dummy)
         assert info.status == 200
@@ -45,7 +45,7 @@ def test_endpoints(app):
         params['username'] = 'user@example.com'
         params['password'] = 'user'
         params['scopes'] = ['plone']
-        dummy = dummy._replace(post=payload(params))        
+        dummy = dummy._replace(post=payload(params))
 
         view_callable = asyncio.coroutine(get_token)
         info = await view_callable(dummy)
@@ -56,7 +56,7 @@ def test_endpoints(app):
 
         params['code'] = service_token
         params['token'] = user_token
-        dummy = dummy._replace(post=payload(params))        
+        dummy = dummy._replace(post=payload(params))
         view_callable = asyncio.coroutine(valid_token)
         info = await view_callable(dummy)
         assert info.status == 200
@@ -94,11 +94,8 @@ def test_endpoints(app):
         view_callable = asyncio.coroutine(get_token)
         try:
             info = await view_callable(dummy)
-            import pdb;
-            pdb.set_trace()
             assert info.status == 400
         except HTTPUnauthorized as e:
-            import pdb; pdb.set_trace()
             pass
 
         # We get the authorize code
