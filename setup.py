@@ -5,8 +5,8 @@ import sys
 from setuptools import setup, find_packages
 
 py_version = sys.version_info[:2]
-if py_version < (3, 3):
-    raise Exception("aiohttp requires Python >= 3.3.")
+if py_version < (3, 5):
+    raise Exception("aiohttp requires Python >= 3.5.")
 
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -34,12 +34,11 @@ requires = [
 
 setup(
     name=NAME,
-    version='0.0',
+    version='1.0',
     description='Plone OAuth',
     long_description=README + '\n\n' + CHANGES,
     classifiers=[
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Framework :: Aiohttp",
         "Topic :: Internet :: WWW/HTTP",
