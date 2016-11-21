@@ -131,8 +131,7 @@ class LDAPUserManager(object):
             result = result[1].get('description', 'Error no description')
         return result
 
-    @asyncio.coroutine
-    def addScope(self, scope):
+    async def addScope(self, scope):
         """
         !!!Admin add: must be protected when calling
         """
@@ -162,7 +161,6 @@ class LDAPUserManager(object):
         self.unbind()
         return result
 
-    @asyncio.coroutine
     def addUser(self, username, password):
         """
         !!!Admin add: must be protected when calling
@@ -194,8 +192,7 @@ class LDAPUserManager(object):
         self.unbind()
         return result
 
-    @asyncio.coroutine
-    def addGroup(self, scope, group):
+    async def addGroup(self, scope, group):
         """
         !!!Admin add: must be protected when calling
         """
@@ -220,9 +217,7 @@ class LDAPUserManager(object):
         self.unbind()
         return result
 
-
-    @asyncio.coroutine
-    def setPassword(self, username, password):
+    async def setPassword(self, username, password):
         """
         !!!Admin add: must be protected when calling
         """
@@ -242,9 +237,7 @@ class LDAPUserManager(object):
         else:
             return False
 
-
-    @asyncio.coroutine
-    def addScopeRole(self, scope, user_dn, role):
+    async def addScopeRole(self, scope, user_dn, role):
         """
         !!!Admin add: must be protected when calling
 
@@ -276,18 +269,15 @@ class LDAPUserManager(object):
         self.unbind()
         return result
 
-    @asyncio.coroutine
-    def addScopeRoleUser(self, scope, username, role):
+    async def addScopeRoleUser(self, scope, username, role):
         user_dn = self.user_filter.format(username=username)
-        return self.addScopeRole(scope, user_dn, role)
+        return await self.addScopeRole(scope, user_dn, role)
 
-    @asyncio.coroutine
-    def addScopeRoleGroup(self, scope, groupname, role):
+    async def addScopeRoleGroup(self, scope, groupname, role):
         group_dn = self.group_filter(scope, groupname)
-        return self.addScopeRole(scope, group_dn, role)
+        return await self.addScopeRole(scope, group_dn, role)
 
-    @asyncio.coroutine
-    def delScopeRole(self, scope, username, role):
+    async def delScopeRole(self, scope, username, role):
         """
         !!!Admin del: must be protected when calling
         """
@@ -315,8 +305,7 @@ class LDAPUserManager(object):
         self.unbind()
         return result
 
-    @asyncio.coroutine
-    def searchUser(self, scope, criteria, exact_match, attrs, page=None, num_x_page=0):
+    async def searchUser(self, scope, criteria, exact_match, attrs, page=None, num_x_page=0):
         """ !!!Admin search: must be protected when calling
         """
         total = 0
@@ -358,11 +347,10 @@ class LDAPUserManager(object):
         self.ldap_conn_mng.unbind()
         return [dict(r['attributes']) for r in result], total
 
-    @asyncio.coroutine
-    def getUser(self, dn, ldap_conn):
+    async def getUser(self, dn, ldap_conn):
         # We should be logged in with the user
-        with (yield from self.cache_users) as redis:
-            user = yield from redis.get(dn)
+        with (await self.cache_users) as redis:
+            user = await redis.get(dn)
             if user and user != b'{}':
                 return ujson.loads(user)
         r = ldap_conn.search(
@@ -372,13 +360,12 @@ class LDAPUserManager(object):
             attributes=USER_ATTRIBUTES)
         if r:
             res = ldap_conn.response[0]
-            with (yield from self.cache_users) as redis:
+            with (await self.cache_users) as redis:
                 redis.set(res['dn'], ujson.dumps(dict(res['attributes'])))
                 redis.expire(res['dn'], self.ttl_users)
             return res['attributes']
 
-    @asyncio.coroutine
-    def loginUser(self, username, password):
+    async def loginUser(self, username, password):
         user_dn = self.user_filter.format(username=username)
         bind_type = SYNC
         authentication_method = SIMPLE
@@ -392,7 +379,7 @@ class LDAPUserManager(object):
         try:
             result = ldap_conn.bind()
             if result:
-                user = yield from self.getUser(user_dn, ldap_conn)
+                user = await self.getUser(user_dn, ldap_conn)
                 ldap_conn.unbind()
                 return user
             else:
@@ -400,11 +387,10 @@ class LDAPUserManager(object):
         except LDAPException:
             return None
 
-    @asyncio.coroutine
-    def getUserName(self, username):
+    async def getUserName(self, username):
         dn = self.user_filter.format(username=username)
-        with (yield from self.cache_users) as redis:
-            user = yield from redis.get(dn)
+        with (await self.cache_users) as redis:
+            user = await redis.get(dn)
             if user and user != b'{}':
                 return ujson.loads(user)
         ldap_conn = self.bind_root_readonly()
@@ -415,14 +401,13 @@ class LDAPUserManager(object):
             attributes=USER_ATTRIBUTES)
         if r:
             names = ldap_conn.get_response(r)[0]
-            res = [res['attributes']['cn'][0] for res in names]           
+            res = [res['attributes']['cn'][0] for res in names]
         else:
             res = []
         ldap_conn.unbind()
         return ' '.join(res)
 
-    @asyncio.coroutine
-    def get_user_groups(self, ldap_conn, scope, user_dn):
+    async def get_user_groups(self, ldap_conn, scope, user_dn):
         """
         Return all groups cn that `user_dn` has in `scope`
 
@@ -444,8 +429,7 @@ class LDAPUserManager(object):
             groups = filter(lambda x: x['dn'] != user_dn, groups) # filter self
             return [res['attributes']['cn'][0] for res in groups]
 
-    @asyncio.coroutine
-    def get_user_roles(self, ldap_conn, scope, user_dn, groups=None):
+    async def get_user_roles(self, ldap_conn, scope, user_dn, groups=None):
         """
         Return all roles cn that `user_dn` has in `scope`.
         Return all roles cn that each of `groups` has in `scope`.
@@ -476,8 +460,7 @@ class LDAPUserManager(object):
             roles = ldap_conn.get_response(r)[0]
             return [res['attributes']['cn'][0] for res in roles]
 
-    @asyncio.coroutine
-    def get_info_user_or_group(self, user_dn, scope):
+    async def get_info_user_or_group(self, user_dn, scope):
         """
         !!!Admin search: must be protected when calling
 
@@ -492,8 +475,8 @@ class LDAPUserManager(object):
             }
         """
         ldap_conn = self.bind_root_readonly()
-        groups = yield from self.get_user_groups(ldap_conn, scope, user_dn)
-        roles = yield from self.get_user_roles(
+        groups = await self.get_user_groups(ldap_conn, scope, user_dn)
+        roles = await self.get_user_roles(
             ldap_conn,
             scope,
             user_dn,
@@ -506,9 +489,7 @@ class LDAPUserManager(object):
             'groups': {e: 1 for e in groups},
         }
 
-
-    @asyncio.coroutine
-    def getUserInfo(self, username, scope):
+    async def getUserInfo(self, username, scope):
         """
         !!!Admin search: must be protected when calling
 
@@ -524,12 +505,11 @@ class LDAPUserManager(object):
             }
         """
         user_dn = self.user_filter.format(username=username)
-        info = yield from self.get_info_user_or_group(user_dn, scope)
+        info = await self.get_info_user_or_group(user_dn, scope)
         info['name'] = username
         return info
 
-    @asyncio.coroutine
-    def getGroupInfo(self, scope, group=None):
+    async def getGroupInfo(self, scope, group=None):
         """
         !!!Admin search: must be protected when calling
 
@@ -568,20 +548,19 @@ class LDAPUserManager(object):
         groups = ldap_conn.get_response(r)[0]
         ldap_conn.unbind()
 
-        @asyncio.coroutine
-        def ldap2json(entry):
+        async def ldap2json(entry):
             group_dn = entry['dn']
             group_name = entry['attributes']['cn'][0]
             members_ldap = entry['attributes']['uniqueMember']
             members_ldap = filter(lambda x: x != group_dn, members_ldap) # filter self
-            info = yield from self.get_info_user_or_group(group_dn, scope)
+            info = await self.get_info_user_or_group(group_dn, scope)
             info.update({
                 'name': group_name,
                 'members': list(map(self.userdn2id, members_ldap)),
                 })
             return info
 
-        groups = yield from asyncio.gather(*map(ldap2json, groups))
+        groups = await asyncio.gather(*map(ldap2json, groups))
 
         if group is None:
             return groups
@@ -590,9 +569,7 @@ class LDAPUserManager(object):
         except IndexError:
             return None
 
-
-    @asyncio.coroutine
-    def get_all_scopes(self, ldap_conn):
+    async def get_all_scopes(self, ldap_conn):
         """
         """
         r = ldap_conn.search(
@@ -605,8 +582,7 @@ class LDAPUserManager(object):
             scopes = ldap_conn.get_response(r)[0]
             return [scope['attributes']['ou'][0] for scope in scopes]
 
-    @asyncio.coroutine
-    def getUserScopes(self, username):
+    async def getUserScopes(self, username):
         """
         Aquesta crida retorna tots els scopes als quals pertany un usuari
 
@@ -615,7 +591,7 @@ class LDAPUserManager(object):
         """
         ldap_conn = self.bind_root_readonly()
 
-        all_scopes = yield from self.get_all_scopes(ldap_conn)
+        all_scopes = await self.get_all_scopes(ldap_conn)
 
         if plone.oauth.is_superuser(username):
             scopes = all_scopes
@@ -623,7 +599,7 @@ class LDAPUserManager(object):
             user_dn = self.user_filter.format(username=username)
             scopes = []
             for scope in all_scopes:
-                roles = yield from self.get_user_roles(ldap_conn, scope, user_dn)
+                roles = await self.get_user_roles(ldap_conn, scope, user_dn)
                 if roles:
                     scopes.append(scope)
 
@@ -633,8 +609,7 @@ class LDAPUserManager(object):
             'scopes': scopes
         }
 
-    @asyncio.coroutine
-    def get_all_users(self, ldap_conn):
+    async def get_all_users(self, ldap_conn):
         """
         Return all users cn that `username` has in `scope`.
         Optionally also search by `groups`.
@@ -649,8 +624,7 @@ class LDAPUserManager(object):
             users = ldap_conn.get_response(r)[0]
             return [user['attributes']['mail'][0] for user in users]
 
-    @asyncio.coroutine
-    def getScopeUsers(self, scope):
+    async def getScopeUsers(self, scope):
         """
         Retorna tots els usuaris que pertanyen a un scope
 
@@ -659,12 +633,12 @@ class LDAPUserManager(object):
         """
         ldap_conn = self.bind_root_readonly()
 
-        all_users_ids = yield from self.get_all_users(ldap_conn)
+        all_users_ids = await self.get_all_users(ldap_conn)
 
         users = []
         for user_id in all_users_ids:
             user_dn = self.user_filter.format(username=user_id)
-            roles = yield from self.get_user_roles(ldap_conn, scope, user_dn)
+            roles = await self.get_user_roles(ldap_conn, scope, user_dn)
             if roles:
                 user = {
                     'id': user_id,

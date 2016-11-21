@@ -1,0 +1,39 @@
+{
+    "valid_password": "plone.oauth.password.valid_password",
+    "password_policy": "plone.oauth.password.password_policy",
+    "jwtsecret": "secret",
+
+    "ldap.user_filter": "mail={username},ou=users,dc=example,dc=com",
+    "ldap.user_profile": ["person", "inetOrgPerson"],
+
+    "ldap.root_pw": "secret",
+    "ldap.root_dn": "uid=admin,ou=system",
+    "ldap.base_dn": "dc=example,dc=com",
+    "ldap.config_server": "127.0.0.1:10389",
+    "ldap.config_dn": "ou=config,dc=example,dc=com",
+    "ldap.config_root_pw": "secret",
+    "ldap.config_root_dn": "uid=admin,ou=system",
+
+    "redis.host": "127.0.0.1",
+    "redis.port": 6379,
+
+    "ldap.server": "127.0.0.1:10389",
+    "ldap.server.passwd": "secret",
+    "ldap.server.dn": "uid=admin,ou=system",
+    "debug": 1,
+
+    "mail.host": "",
+    "mail.port": 587,
+    "mail.username": "",
+    "mail.password": "",
+    "mail.tls": 1,
+    "mail.ssl": 0,
+
+    "logging.config": "./development.ini",
+
+    "cors":  ["http://localhost:4200" , "https://example.com"],
+
+    "manager": "admin@example.com",
+    "backend": "LDAPADMIN"
+
+}

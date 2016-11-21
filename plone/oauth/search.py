@@ -1,25 +1,19 @@
-from pyramid.httpexceptions import HTTPUnauthorized
-from pyramid.httpexceptions import HTTPBadRequest
-from pyramid.httpexceptions import HTTPNotImplemented
-from pyramid.httpexceptions import HTTPFound
 import asyncio
-from pyramid.view import view_config
 import uuid
 import logging
 import jwt
 import ujson
 from datetime import datetime, timedelta
-from pyramid.response import Response
+
+from aiohttp.web import Response
+from aiohttp.web import HTTPBadRequest
 from ldap3 import Server, Connection, SUBTREE, ASYNC, SIMPLE, ANONYMOUS, SASL
 
 
 log = logging.getLogger(__name__)
 
-@view_config(route_name='search_user',
-             request_method='POST',
-             http_cache=0)
-@asyncio.coroutine
-def search_user(request):
+
+async def search_user(request):
     """
     Its superadmin, take care!
 
@@ -47,54 +41,55 @@ def search_user(request):
         }
 
     """
-    access_token = request.params.get('code', None)
+    params = await request.post()
+    access_token = params.get('code', None)
     if access_token is None:
-        raise HTTPBadRequest('code is missing')
+        raise HTTPBadRequest(reason='code is missing')
 
-    db_tauths = request.registry.settings['db_tauths']
+    db_tauths = request.app['settings']['db_tauths']
 
-    with (yield from db_tauths) as redis:
-        client_id = yield from redis.get(access_token)
+    with (await db_tauths) as redis:
+        client_id = await redis.get(access_token)
 
     if client_id is None:
-        raise HTTPBadRequest('Invalid Auth code')
+        raise HTTPBadRequest(reason='Invalid Auth code')
 
-    scope = request.params.get('scope', None)
+    scope = params.get('scope', None)
     if scope is None:
-        raise HTTPBadRequest('scope is missing')
+        raise HTTPBadRequest(reason='scope is missing')
 
-    criteria = request.params.get('criteria', None)
+    criteria = params.get('criteria', None)
     if criteria is None:
-        raise HTTPBadRequest('criteria is missing')
+        raise HTTPBadRequest(reason='criteria is missing')
     else:
         criteria = ujson.loads(criteria)
 
-    exact_match = request.params.get('exact_match', None)
+    exact_match = params.get('exact_match', None)
     if exact_match is None:
         exact_match = False
     else:
         exact_match = True
 
 
-    attrs = ujson.loads(request.params.get('attrs', '[]'))
+    attrs = ujson.loads(params.get('attrs', '[]'))
 
-    page = request.params.get('page', '0')
+    page = params.get('page', '0')
     try:
         page = int(page)
     except ValueError:
         page = 0
 
-    num_x_page = request.params.get('num_x_page', '20')
+    num_x_page = params.get('num_x_page', '20')
     try:
         num_x_page = int(num_x_page)
     except ValueError:
         num_x_page = 0
 
-    ttl = request.registry.settings['ttl_search']
-    secret = request.registry.settings['jwtsecret']
+    ttl = request.app['settings']['ttl_search']
+    secret = request.app['settings']['jwtsecret']
 
-    user_manager = request.registry.settings['user_manager']
-    result = yield from user_manager.searchUser(
+    user_manager = request.app['settings']['user_manager']
+    result = await user_manager.searchUser(
         scope,
         criteria,
         exact_match,

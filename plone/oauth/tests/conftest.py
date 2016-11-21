@@ -1,11 +1,12 @@
 # content of conftest.py
+from collections import namedtuple
+
 import pytest
+from unittest.mock import NonCallableMagicMock
 from plone.oauth import main
-from pyramid import testing
 import asyncio
 from plone.oauth.endpoints import get_authorization_code, get_token
 import jwt
-
 
 def pytest_addoption(parser):
     parser.addoption("--ldap", action="store",
@@ -60,12 +61,6 @@ secret = 'secret'
 @pytest.fixture(scope="module")
 def app(request):
     settings = {
-        'pyramid.reload_templates': False,
-        'pyramid.debug_authorization': False,
-        'pyramid.debug_notfound': False,
-        'pyramid.debug_routematch': False,
-        'pyramid.includes': 'aiopyramid',
-        'pyramid.default_locale_name': 'en',
         'jwtsecret': secret,
         'ldap.base_dn': 'dc=plone,dc=com',
         'ldap.user_filter': 'mail={username},ou=users,dc=plone,dc=com',
@@ -76,13 +71,13 @@ def app(request):
         'ldap.config_dn': 'ou=config,dc=plone,dc=com',
         'ldap.config_root_pw': 'secret',
         'ldap.config_root_dn': 'uid=admin,ou=system',
-        'ldap.user_profile': '["person","inetOrgPerson"]',
+        'ldap.user_profile': ["person","inetOrgPerson"],
         'valid_password': 'plone.oauth.password.valid_password',
         'password_policy': 'plone.oauth.password.password_policy',
         'debug': True,
         'manager': 'admin@example.com',
         'redis.host': request.config.getoption("--redis"),
-        'redis.port': request.config.getoption("--redis-port"),
+        'redis.port': int(request.config.getoption("--redis-port")),
         'mail.host': 'localhost',
         'mail.port': 587,
         'mail.username': 'username',
@@ -92,7 +87,8 @@ def app(request):
         'logging.config': 'development.ini',
         'backend': 'LDAPADMIN'
     }
-    app = main({}, **settings)
+
+    app = main(settings)
 
     # Init client db
     # db_clients = app.registry.settings['db_clients']
@@ -100,10 +96,10 @@ def app(request):
     # db_clients.set(22, 'holahola')
 
     # Add user
-    user_manager = app.registry.settings['user_manager']
-
+    user_manager = app['settings']['user_manager']
     user_manager.addUser('user@example.com', 'user')
 
-    request = testing.DummyRequest()
-    request.registry = app.registry
-    return request
+    MockRequest = namedtuple('MockRequest', ['app', 'json', 'headers', 'post', 'get', 'transport'])
+    ExtraInfo = namedtuple('ExtraInfo', ['get_extra_info'])
+    extrainfo = ExtraInfo(lambda arg: ('127.0.0.1', '8080') if arg == 'peername' else None)
+    return MockRequest(app, None, {}, None, None, extrainfo)

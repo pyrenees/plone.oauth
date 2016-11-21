@@ -6,8 +6,8 @@ import jwt
 def jwt_response(request, result, name='result'):
     """Return a JWT encode response"""
     # Check if the user is administrator for the scope so can get the info
-    secret = request.registry.settings['jwtsecret']
-    ttl = request.registry.settings['ttl_user_info']
+    secret = request.app['settings']['jwtsecret']
+    ttl = request.app['settings']['ttl_user_info']
     token = jwt.encode(
         {
             'iat': datetime.utcnow(),
