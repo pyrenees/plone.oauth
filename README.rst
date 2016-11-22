@@ -75,3 +75,6 @@ from Iskra Desenvolupament SCCL:
 - Ramon Navarro Bosch
 - Aleix Llusà
 
+from Atlasense:
+
+- Daniel Manchón Vizuete
