@@ -22,12 +22,6 @@ objectClass: top
 objectClass: organizationalUnit
 ou: clients
 
-dn: ou=roles,ou=config,dc=plone,dc=com
-changetype: add
-objectClass: top
-objectClass: organizationalUnit
-ou: roles
-
 dn: ou=plone,ou=scopes,dc=plone,dc=com
 changetype: add
 objectClass: top
@@ -75,19 +69,38 @@ objectClass: groupOfUniqueNames
 cn: plone.Member
 uniqueMember: mail=user@example.com,ou=users,dc=plone,dc=com
 
-dn: cn=plone.Editor,ou=roles,ou=config,dc=plone,dc=com
+dn: cn=plone.Reader,ou=roles,ou=plone,ou=scopes,dc=plone,dc=com
 changetype: add
 objectClass: top
-objectClass: organizationalRole
-cn: plone.Editor
+objectClass: groupOfUniqueNames
+cn: plone.Reader
+uniqueMember: mail=user@example.com,ou=users,dc=plone,dc=com
 
-dn: cn=plone.Manager,ou=roles,ou=config,dc=plone,dc=com
+dn: cn=plone.Manager,ou=roles,ou=plone,ou=scopes,dc=plone,dc=com
 changetype: add
 objectClass: top
 objectClass: organizationalRole
 cn: plone.Manager
 
-dn: cn=group1,ou=groups,ou=plone,ou=scopes,dc=plone,dc=com
+dn: cn=plone.Reviewer,ou=roles,ou=plone,ou=scopes,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: organizationalRole
+cn: plone.Reviewer
+
+dn: cn=plone.SiteAdmin,ou=roles,ou=plone,ou=scopes,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: organizationalRole
+cn: plone.SiteAdmin
+
+dn: cn=plone.SiteDeleter,ou=roles,ou=plone,ou=scopes,dc=plone,dc=com
+changetype: add
+objectClass: top
+objectClass: organizationalRole
+cn: plone.SiteAdmin
+
+dn: cn=group1,ou=groups,ou=plone,ou=plone,ou=scopes,dc=plone,dc=com
 changetype: add
 objectClass: top
 objectClass: groupOfUniqueNames
