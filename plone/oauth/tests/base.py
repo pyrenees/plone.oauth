@@ -344,6 +344,7 @@ class BaseHorusTest(TestUtils, TestUtilsSecurity):
 
     def create_user(self):
         loop = asyncio.get_event_loop()
+
         result = self.ldap.addUser(self.user_id, self.user_pwd)
 
         # We get the working token for the user

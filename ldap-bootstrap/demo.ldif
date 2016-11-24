@@ -100,7 +100,7 @@ objectClass: top
 objectClass: organizationalRole
 cn: plone.SiteAdmin
 
-dn: cn=group1,ou=groups,ou=plone,ou=plone,ou=scopes,dc=plone,dc=com
+dn: cn=group1,ou=groups,ou=plone,ou=scopes,dc=plone,dc=com
 changetype: add
 objectClass: top
 objectClass: groupOfUniqueNames
