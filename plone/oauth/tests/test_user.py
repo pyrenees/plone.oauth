@@ -22,7 +22,7 @@ class MockClient():
         self.client_secret = 'plone'
         self.user = 'user@example.com'
         self.user_password = 'user'
-        self.user_roles = {'Contributor': 1, 'Member':1, 'Editor': 1}
+        self.user_roles = {'plone.Contributor': 1, 'plone.Member':1, 'plone.Editor': 1, 'plone.Reader': 1}
         self.user_groups = {'group1': 1}
         self.new_user ='hola@example.com'
         self.manager = 'manager@example.com'
