@@ -1,4 +1,3 @@
-import asyncio
 import uuid
 import logging
 import jwt
@@ -6,18 +5,16 @@ from datetime import datetime, timedelta
 
 from aiohttp.web import Response
 from aiohttp.web import HTTPBadRequest, HTTPUnauthorized, HTTPFound
-from ldap3 import Server, Connection, SUBTREE, ASYNC, SIMPLE, ANONYMOUS, SASL
 import plone.oauth
-import os
 
 from plone.oauth.utils.request import get_domain
 
 log = logging.getLogger(__name__)
 
 
-# get_authorization_code
 async def get_authorization_code(request):
-    """
+    """Get the authorization code.
+
     Request: POST /get_authorization_code
                     ?response_type=[code, url]
                     &client_id={CLIENT_ID}
@@ -33,7 +30,6 @@ async def get_authorization_code(request):
                     ?error=access_denied
 
     """
-
     try:
         json_body = await request.json()
     except:
@@ -85,12 +81,12 @@ async def get_authorization_code(request):
     for scope in scopes:
         if not config.hasScope(scope):
             log.error('Not valid scope ' + scope)
-            return HTTPUnauthorized("Wrong scope")
+            return HTTPUnauthorized(reason="Wrong scope")
 
     if not config.hasClient(client_id):
         # S'hauria de reenviar a authentificacio de l'usuari per acceptar-ho
         log.error('Not valid client_id ' + client_id)
-        return HTTPUnauthorized("Wrong client id")
+        return HTTPUnauthorized(reason="Wrong client id")
 
     # If its ok create a authorization code
     auth_code = uuid.uuid4().hex
@@ -127,38 +123,38 @@ async def get_authorization_code(request):
     else:
         response = Response(body=token, content_type='text/plain')
 
-    origin = request.headers.get('Origin', None)
-    if origin and origin in plone.oauth.CORS:
-        response.headers['Access-Control-Allow-Origin'] = origin
-    elif origin:
-        return HTTPUnauthorized("Wrong Origin")
+    # origin = request.headers.get('Origin', None)
+    # if origin and origin in plone.oauth.CORS:
+    #     response.headers['Access-Control-Allow-Origin'] = origin
+    # elif origin:
+    #     return HTTPUnauthorized("Wrong Origin")
 
     return response
 
 
-def preflight(request):
-    origin = request.headers.get('Origin', None)
-    if not origin:
-        try:
-            origin = request.headers.__dict__['environ']['HTTP_Origin']
-        except:
-            raise HTTPBadRequest(reason='Origin header is missing')
-    if origin in plone.oauth.CORS:
-        response = Response()
-        response.headers['Access-Control-Allow-Headers'] = 'origin, content-type, accept'
-        response.headers['Access-Control-Allow-Methods'] = 'POST'
-        response.headers['Access-Control-Allow-Origin'] = origin
-        return response
-    else:
-        raise HTTPBadRequest(reason='Not valid origin : ' + origin)
+# def preflight(request):
+#     origin = request.headers.get('Origin', None)
+#     if not origin:
+#         try:
+#             origin = request.headers.__dict__['environ']['HTTP_Origin']
+#         except:
+#             raise HTTPBadRequest(reason='Origin header is missing')
+#     if origin in plone.oauth.CORS:
+#         response = Response()
+#         response.headers['Access-Control-Allow-Headers'] = 'origin, content-type, accept'  # noqa
+#         response.headers['Access-Control-Allow-Methods'] = 'POST'
+#         response.headers['Access-Control-Allow-Origin'] = origin
+#         return response
+#     else:
+#         raise HTTPBadRequest(reason='Not valid origin : ' + origin)
 
-async def get_auth_token_options(request):
-    return preflight(request)
+# async def get_auth_token_options(request):
+#     return preflight(request)
 
 
-# get_token
-async  def get_token(request):
-    """
+async def get_token(request):
+    """Get the access token.
+
     Request: POST /get_auth_token
                 grant_type=[user, service]
                 client_id={CLIENT_ID}
@@ -307,7 +303,7 @@ async  def get_token(request):
                 'agent': request.headers.get('User-Agent', 'Unknown'),
                 'ip': request.transport.get_extra_info('peername')[0],
                 'scope': scope
-                })
+            })
 
         if debug:
             log.warn('Access Code from User : %s', client_id)
@@ -327,21 +323,21 @@ async  def get_token(request):
 
         response = Response(body=token, content_type='text/plain')
 
-    origin = request.headers.get('Origin', None)
+    # origin = request.headers.get('Origin', None)
 
-    if origin and origin in plone.oauth.CORS:
-        response.headers['Access-Control-Allow-Origin'] = origin
-    elif origin:
-        return HTTPUnauthorized("Wrong Origin " + origin)
+    # if origin and origin in plone.oauth.CORS:
+    #     response.headers['Access-Control-Allow-Origin'] = origin
+    # elif origin:
+    #     return HTTPUnauthorized(reason="Wrong Origin " + origin)
 
     return response
 
-async def set_password_options(request):
-    return preflight(request)
+# async def set_password_options(request):
+#     return preflight(request)
 
-#@asyncio.coroutine
 async def set_password(request):
-    """
+    """Set password.
+
     Request: POST /password
                 client_id={CLIENT_ID}
                 token={TOKEN}
@@ -358,7 +354,7 @@ async def set_password(request):
     except:
         json_body = {}
 
-    db_tauths = request.app['settings']['db_tauths']
+    # db_tauths = request.app['settings']['db_tauths']
 
     params = await request.post()
     client_id = params.get('client_id', None)
@@ -390,14 +386,15 @@ async def set_password(request):
     password_policy = request.app['settings']['password_policy']
     if not valid_password(password):
         password_policy = password_policy()
-        raise HTTPBadRequest(reason='Password not valid: {}'.format(password_policy))
+        raise HTTPBadRequest(
+            reason='Password not valid: {}'.format(password_policy))
 
     config = request.app['settings']['db_config']
 
     if not config.hasClient(client_id):
         # S'hauria de reenviar a authentificacio de l'usuari per acceptar-ho
         log.error('Not valid client_id ' + client_id)
-        return HTTPUnauthorized("Wrong client id")
+        return HTTPUnauthorized(reason="Wrong client id")
 
     secret = request.app['settings']['jwtsecret']
     debug = request.app['settings']['debug']
@@ -408,7 +405,8 @@ async def set_password(request):
     try:
         result = await user_manager.setPassword(user, password)
     except:
-        raise HTTPBadRequest(reason='Password not valid: {}'.format(password_policy()))
+        raise HTTPBadRequest(
+            reason='Password not valid: {}'.format(password_policy()))
 
     if not result:
         raise HTTPBadRequest(reason='Failed policy LDAP')
@@ -434,7 +432,7 @@ async def set_password(request):
             'agent': request.headers.get('User-Agent', 'Unknown'),
             'ip': request.transport.get_extra_info('peername')[0],
             'scope': 'plone'
-            })
+        })
 
     if debug:
         log.warn('Access Code from User : %s', client_id)
@@ -454,22 +452,23 @@ async def set_password(request):
 
     response = Response(body=newtoken, content_type='text/plain')
 
-    origin = request.headers.get('Origin', None)
+    # origin = request.headers.get('Origin', None)
 
-    if origin and origin in plone.oauth.CORS:
-        response.headers['Access-Control-Allow-Origin'] = origin
-    elif origin:
-        return HTTPUnauthorized("Wrong Origin " + origin)
+    # if origin and origin in plone.oauth.CORS:
+    #     response.headers['Access-Control-Allow-Origin'] = origin
+    # elif origin:
+    #     return HTTPUnauthorized(reason="Wrong Origin " + origin)
 
     return response
 
 
-async def refresh_token_options(request):
-    return preflight(request)
+# async def refresh_token_options(request):
+#     return preflight(request)
 
 
 async def refresh_token(request):
-    """
+    """Refresh token.
+
     Request: POST /refresh
                 client_id={CLIENT_ID}
                 token={TOKEN}
@@ -491,7 +490,7 @@ async def refresh_token(request):
     # if access_token is None:
     #     raise HTTPBadRequest(reason='code is missing')
 
-    db_tauths = request.app['settings']['db_tauths']
+    # db_tauths = request.app['settings']['db_tauths']
     params = await request.post()
     client_id = params.get('client_id', None)
     client_id = json_body.get('client_id', client_id)
@@ -545,7 +544,7 @@ async def refresh_token(request):
     if not config.hasClient(client_id):
         # S'hauria de reenviar a authentificacio de l'usuari per acceptar-ho
         log.error('Not valid client_id ' + client_id)
-        return HTTPUnauthorized("Wrong client id")
+        return HTTPUnauthorized(reason="Wrong client id")
 
     secret = request.app['settings']['jwtsecret']
     debug = request.app['settings']['debug']
@@ -574,7 +573,7 @@ async def refresh_token(request):
             'agent': request.headers.get('User-Agent', 'Unknown'),
             'ip': request.transport.get_extra_info('peername')[0],
             'scope': 'plone'
-            })
+        })
 
     if debug:
         log.warn('Access Code from User : %s', client_id)
@@ -594,11 +593,11 @@ async def refresh_token(request):
 
     response = Response(body=newtoken, content_type='text/plain')
 
-    origin = request.headers.get('Origin', None)
+    # origin = request.headers.get('Origin', None)
 
-    if origin and origin in plone.oauth.CORS:
-        response.headers['Access-Control-Allow-Origin'] = origin
-    elif origin:
-        return HTTPUnauthorized("Wrong Origin " + origin)
+    # if origin and origin in plone.oauth.CORS:
+    #     response.headers['Access-Control-Allow-Origin'] = origin
+    # elif origin:
+    #     return HTTPUnauthorized(reason="Wrong Origin " + origin)
 
     return response

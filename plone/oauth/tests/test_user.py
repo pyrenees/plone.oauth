@@ -72,7 +72,8 @@ class MockClient():
         self.params['password'] = self.user_password
         self.params['scopes'] = [self.scope]
         self.headers = {'User-Agent': 'DUMMY', 'Host': '127.0.0.1:8080'}
-        self.app = self.app._replace(post=payload(self.params), headers=self.headers)
+        self.app = self.app._replace(
+            post=payload(self.params), headers=self.headers)
         view_callable = asyncio.coroutine(get_token)
         info = await view_callable(self.app)
         assert info.status == 200
@@ -207,7 +208,7 @@ def test_endpoints(app):
         assert info.status == 200
 
         info_decoded = jwt.decode(info.body, secret)
-        assert info_decoded['result']['roles'] == {'Manager': 1}
+        assert info_decoded['result']['roles'] == {'plone.Manager': 1}
         assert info_decoded['result']['groups'] == {}
 
     asyncio.get_event_loop().run_until_complete(_test_superadmin_info())
@@ -451,7 +452,7 @@ def test_endpoints(app):
         # check not manager can not assign roles
         mock.params['scope'] = mock.scope
         mock.params['user'] = mock.new_user
-        mock.params['roles'] = ['Manager']
+        mock.params['roles'] = ['plone.Manager']
         mock.app = mock.app._replace(post=payload(mock.params), headers=mock.headers)
         view_callable = asyncio.coroutine(grant_user_scope_roles)
         with unittest.TestCase().assertRaises(

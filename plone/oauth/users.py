@@ -50,7 +50,7 @@ async def get_user(request):
     Response HTTP 200 in JWT token:
         {
             'roles': {
-                'Manager': 1
+                'plone.Manager': 1
             },
             'groups': [
                 'Group1'
@@ -89,7 +89,7 @@ async def get_user(request):
         result = await user_manager.getUserInfo(user, scope)
         if plone.oauth.is_superuser(user):
             # Add superadmins roles to scope
-            result['roles']['Manager'] = 1
+            result['roles']['plone.Manager'] = 1
 
         # Cache in redis
         with (await db_token) as redis:

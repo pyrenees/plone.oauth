@@ -13,7 +13,6 @@ from plone.oauth import search
 from plone.oauth.views import ping, say_hello
 from plone.oauth import users
 from plone.oauth import groups
-from plone.oauth import views
 from plone.oauth import valid
 
 from aiohttp_swagger import setup_swagger
@@ -25,17 +24,10 @@ from pyramid_mailer import mailer_factory_from_settings
 
 import logging
 
-import jwt
-from jwt.contrib.algorithms.pycrypto import RSAAlgorithm
-from jwt.contrib.algorithms.py_ecdsa import ECAlgorithm
-
-#jwt.register_algorithm('RS256', RSAAlgorithm(RSAAlgorithm.SHA256))
-#jwt.register_algorithm('ES256', ECAlgorithm(ECAlgorithm.SHA256))
-
 log = logging.getLogger(__name__)
 
 MANAGERS = []
-CORS = []
+# CORS = []
 
 
 def is_superuser(username):
@@ -109,6 +101,9 @@ def config_ldap(registry, settings):
         minsize=5,
         maxsize=10)
 
+    registry['settings']['db_pool_users'] = db_pool_users
+    registry['settings']['db_pool_groups'] = db_pool_groups
+
     # db_pool_users = redis.ConnectionPool(
     #     host=settings['redis.host'], port=settings['redis.port'], db=3)
     # db_pool_groups = redis.ConnectionPool(
@@ -135,10 +130,10 @@ def config_ldap(registry, settings):
             cache_users=db_pool_users,
             cache_groups=db_pool_groups)
 
-    elif registry['settings']['backend'] == 'LDAP':
-        ldap_object = LDAPUserManager(
-            server,
-            config.registry['settings']['ldap.user_filter'])
+    # elif registry['settings']['backend'] == 'LDAP':
+    #     ldap_object = LDAPUserManager(
+    #         server,
+    #         config.registry['settings']['ldap.user_filter'])
 
     registry['settings']['user_manager'] = ldap_object
 
@@ -185,7 +180,7 @@ def main(config):
     )
     cors_config = {address: resource_options for address in settings.get('cors', [])}
     cors = aiohttp_cors.setup(app, defaults=cors_config)
-    CORS.extend(cors_config)
+    # CORS.extend(cors_config)
     log.info(' Enabled cors: ' + ', '.join(cors_config))
 
     # support logging in python3
@@ -211,7 +206,7 @@ def main(config):
     registry['settings']['ttl_auth_code'] = 120
 
     # El token de l'usuari
-    registry['settings']['ttl_auth'] = 86400 #!24h fins que no tinguem renew!!
+    registry['settings']['ttl_auth'] = 86400  # !24h fins que no tinguem renew
 
     # L'auth token del sistema
     registry['settings']['ttl_service_token'] = 36600
@@ -235,26 +230,24 @@ def main(config):
 
     # config.add_settings(debug=settings['debug'] == 'True')
 
-    cors.add(app.router.add_get('/', say_hello))
-    cors.add(app.router.add_post('/get_authorization_code', endpoints.get_authorization_code))
+    app.router.add_get('/', say_hello)
+    app.router.add_post('/get_authorization_code', endpoints.get_authorization_code)
     cors.add(app.router.add_post('/get_auth_token', endpoints.get_token))
-    cors.add(app.router.add_route('OPTION', '/get_auth_token', endpoints.get_auth_token_options))
     cors.add(app.router.add_post('/password', endpoints.set_password))
-    cors.add(app.router.add_route('OPTION', '/password', endpoints.set_password_options))
     cors.add(app.router.add_post('/refresh', endpoints.refresh_token))
-    cors.add(app.router.add_route('OPTION', '/refresh', endpoints.refresh_token_options))
-    cors.add(app.router.add_post('/search_user', search.search_user))
-    cors.add(app.router.add_post('/valid_token', valid.valid_token))
-    cors.add(app.router.add_post('/get_user', users.get_user))
-    cors.add(app.router.add_post('/get_users', users.get_users))
-    cors.add(app.router.add_post('/get_group', groups.get_group))
-    cors.add(app.router.add_post('/add_user', users.add_user))
-    cors.add(app.router.add_post('/add_group', groups.add_group))
-    cors.add(app.router.add_post('/add_scope', users.add_scope))
-    cors.add(app.router.add_get('/get_scopes', users.get_scopes))
-    cors.add(app.router.add_post('/grant_scope_roles', users.grant_user_scope_roles))
-    cors.add(app.router.add_post('/deny_scope_roles', users.deny_user_scope_roles))
-    cors.add(app.router.add_get('/ping', ping))
+
+    app.router.add_post('/search_user', search.search_user)
+    app.router.add_post('/valid_token', valid.valid_token)
+    app.router.add_post('/get_user', users.get_user)
+    app.router.add_post('/get_users', users.get_users)
+    app.router.add_post('/get_group', groups.get_group)
+    app.router.add_post('/add_user', users.add_user)
+    app.router.add_post('/add_group', groups.add_group)
+    app.router.add_post('/add_scope', users.add_scope)
+    app.router.add_get('/get_scopes', users.get_scopes)
+    app.router.add_post('/grant_scope_roles', users.grant_user_scope_roles)
+    app.router.add_post('/deny_scope_roles', users.deny_user_scope_roles)
+    app.router.add_get('/ping', ping)
 
     setup_swagger(
         app,
@@ -265,9 +258,16 @@ def main(config):
 
     async def close_redis(app):
         log.info('Closing REDIS pools connections ...')
+        registry['settings']['db_cauths'].close()
+        registry['settings']['db_tauths'].close()
+        registry['settings']['db_token'].close()
+        registry['settings']['db_pool_users'].close()
+        registry['settings']['db_pool_groups'].close()
         await registry['settings']['db_cauths'].wait_closed()
         await registry['settings']['db_tauths'].wait_closed()
         await registry['settings']['db_token'].wait_closed()
+        await registry['settings']['db_pool_users'].wait_closed()
+        await registry['settings']['db_pool_groups'].wait_closed()
         log.info('Closed REDIS pools connections.')
 
     app.on_cleanup.append(close_redis)

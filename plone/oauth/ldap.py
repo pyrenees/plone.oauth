@@ -423,7 +423,7 @@ class LDAPUserManager(object):
             search_filter,
             search_scope=SUBTREE,
             attributes=['cn']
-            )
+        )
         if r:
             groups = ldap_conn.get_response(r)[0]
             groups = filter(lambda x: x['dn'] != user_dn, groups) # filter self
@@ -470,7 +470,7 @@ class LDAPUserManager(object):
                     'group1': 1,
                 },
                 'roles': {
-                    'Manager': 1,
+                    'plone.Manager': 1,
                 }
             }
         """
@@ -480,8 +480,8 @@ class LDAPUserManager(object):
             ldap_conn,
             scope,
             user_dn,
-            groups = groups,
-            )
+            groups=groups,
+        )
         ldap_conn.unbind()
 
         return {
@@ -499,7 +499,7 @@ class LDAPUserManager(object):
                     'group1': 1,
                 },
                 'roles': {
-                    'Manager': 1,
+                    'plone.Manager': 1,
                 }
                 'name': 'Name'
             }

@@ -40,12 +40,6 @@ objectClass: top
 objectClass: organizationalUnit
 ou: roles
 
-dn: ou=localroles,ou=plone,ou=scopes,dc=plone,dc=com
-changetype: add
-objectClass: top
-objectClass: organizationalUnit
-ou: localroles
-
 dn: ou=groups,ou=plone,ou=scopes,dc=plone,dc=com
 changetype: add
 objectClass: top
@@ -60,53 +54,38 @@ cn: plone
 sn: Plone
 userPassword:: e1NTSEF9VS80aDA4OUhBWEVFdkI5a0R3SW9oZjVsb0xjWS9tblM=
 
-dn: cn=editor,ou=roles,ou=plone,ou=scopes,dc=plone,dc=com
+dn: cn=plone.Editor,ou=roles,ou=plone,ou=scopes,dc=plone,dc=com
 changetype: add
 objectClass: top
 objectClass: groupOfUniqueNames
-cn: Editor
+cn: plone.Editor
 uniqueMember: cn=group1,ou=groups,ou=plone,ou=scopes,dc=plone,dc=com
 
-dn: cn=contributor,ou=roles,ou=plone,ou=scopes,dc=plone,dc=com
+dn: cn=plone.Contributor,ou=roles,ou=plone,ou=scopes,dc=plone,dc=com
 changetype: add
 objectClass: top
 objectClass: groupOfUniqueNames
-cn: Contributor
+cn: plone.Contributor
 uniqueMember: mail=user@example.com,ou=users,dc=plone,dc=com
 
-dn: cn=member,ou=roles,ou=plone,ou=scopes,dc=plone,dc=com
+dn: cn=plone.Member,ou=roles,ou=plone,ou=scopes,dc=plone,dc=com
 changetype: add
 objectClass: top
 objectClass: groupOfUniqueNames
-cn: Member
+cn: plone.Member
 uniqueMember: mail=user@example.com,ou=users,dc=plone,dc=com
 
-dn: ou=119ac55fa05848aca5e2289f7c2503cf,ou=localroles,ou=plone,ou=scopes,dc=plone,dc=com
-changetype: add
-objectClass: top
-objectClass: organizationalUnit
-ou: 119ac55fa05848aca5e2289f7c2503cf
-
-dn: cn=editor,ou=119ac55fa05848aca5e2289f7c2503cf,ou=localroles,ou=plone,ou=scopes,dc=plone,dc=com
-changetype: add
-objectClass: top
-objectClass: groupOfUniqueNames
-cn: editor
-seeAlso: ou=c43e88884b384ee3b870c0a648bf61a7,ou=localroles,ou=plone,ou=scopes,dc=plone,dc=com
-uniqueMember: mail=user@example.com,ou=users,dc=plone,dc=com
-uniqueMember: cn=group1,ou=groups,ou=plone,ou=scopes,dc=plone,dc=com
-
-dn: cn=editor,ou=roles,ou=config,dc=plone,dc=com
+dn: cn=plone.Editor,ou=roles,ou=config,dc=plone,dc=com
 changetype: add
 objectClass: top
 objectClass: organizationalRole
-cn: editor
+cn: plone.Editor
 
-dn: cn=manager,ou=roles,ou=config,dc=plone,dc=com
+dn: cn=plone.Manager,ou=roles,ou=config,dc=plone,dc=com
 changetype: add
 objectClass: top
 objectClass: organizationalRole
-cn: manager
+cn: plone.Manager
 
 dn: cn=group1,ou=groups,ou=plone,ou=scopes,dc=plone,dc=com
 changetype: add
